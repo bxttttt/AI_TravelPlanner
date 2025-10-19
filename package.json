@@ -10,6 +10,7 @@
     "build:client": "cd client && npm run build"
   },
   "dependencies": {
+    "@alicloud/bailian20231229": "^2.5.0",
     "axios": "^1.5.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
