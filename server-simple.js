@@ -298,15 +298,15 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
   // 检查是否有API Key配置
   const userApiKey = req.headers['x-api-key'] || req.body.apiKey;
   
-  // 使用阿里云百炼的API Key
-  const defaultApiKey = 'your-aliyun-bailian-api-key'; // 请替换为您的阿里云百炼API Key
+  // 使用您的API Key
+  const defaultApiKey = 'sk-5aad8ea912dd411ebcf931d10f3ca7e8';
   const finalApiKey = userApiKey || defaultApiKey;
   
   // 在演示模式下，如果没有API Key，使用演示数据
   const isDemoMode = !userApiKey && !defaultApiKey;
   
-  // 由于网络问题，暂时使用增强的演示模式
-  const useDemoMode = true; // 强制使用演示模式
+  // 使用真实的API调用
+  const useDemoMode = false; // 使用真实API
   
   if (isDemoMode || useDemoMode) {
     // 智能演示模式：根据用户输入生成个性化规划
@@ -415,8 +415,8 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
   try {
     // 使用阿里云百炼API
     const client = new Bailian({
-      accessKeyId: 'your-access-key-id', // 请替换为您的AccessKey ID
-      accessKeySecret: finalApiKey, // 使用API Key作为Secret
+      accessKeyId: 'LTAI5tQZ8QZ8QZ8QZ8QZ8QZ8', // 请替换为您的AccessKey ID
+      accessKeySecret: 'your-access-key-secret', // 请替换为您的AccessKey Secret
       endpoint: 'https://bailian.cn-beijing.aliyuncs.com'
     });
     
@@ -466,66 +466,32 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
   }
 }`;
 
-    // 调用阿里云百炼API
-    const response = await client.createTextEmbeddings({
-      input: prompt,
-      model: "text-embedding-v1"
+    // 使用HTTP请求直接调用阿里云百炼API
+    const axios = require('axios');
+    
+    const response = await axios.post('https://bailian.cn-beijing.aliyuncs.com/api/v1/chat/completions', {
+      model: "qwen-plus",
+      messages: [
+        {
+          role: "system",
+          content: "你是一个专业的旅行规划师，擅长制定详细、实用的旅行计划。请根据用户需求提供个性化的旅行建议。"
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      max_tokens: 2000,
+      temperature: 0.7
+    }, {
+      headers: {
+        'Authorization': `Bearer ${finalApiKey}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: 30000
     });
     
-    // 由于百炼API的响应格式不同，我们使用简化的调用
-    const aiResponse = await new Promise((resolve, reject) => {
-      // 这里需要根据实际的阿里云百炼API文档进行调整
-      // 暂时使用模拟响应
-      setTimeout(() => {
-        resolve(JSON.stringify({
-          summary: `为您规划了${destination}的${travelers}人旅行，预算${budget}元`,
-          itinerary: [
-            {
-              date: startDate,
-              activities: [
-                {
-                  time: '09:00',
-                  title: '抵达目的地',
-                  description: '到达机场，办理入住手续',
-                  location: '机场',
-                  cost: 0,
-                  category: '交通'
-                },
-                {
-                  time: '12:00',
-                  title: '午餐',
-                  description: '品尝当地特色美食',
-                  location: '市中心餐厅',
-                  cost: Math.round(budget * 0.1),
-                  category: '餐饮'
-                },
-                {
-                  time: '14:00',
-                  title: '城市观光',
-                  description: '游览当地著名景点',
-                  location: '市中心',
-                  cost: Math.round(budget * 0.15),
-                  category: '景点'
-                },
-                {
-                  time: '18:00',
-                  title: '晚餐',
-                  description: '享受当地特色晚餐',
-                  location: '特色餐厅',
-                  cost: Math.round(budget * 0.2),
-                  category: '餐饮'
-                }
-              ]
-            }
-          ],
-          recommendations: {
-            restaurants: ['当地特色餐厅', '网红打卡餐厅', '传统老字号'],
-            attractions: ['历史古迹', '自然景观', '文化博物馆'],
-            tips: ['提前预订门票', '了解交通方式', '准备常用药品']
-          }
-        }));
-      }, 1000);
-    });
+    const aiResponse = response.data.choices[0].message.content;
     
     // 尝试解析AI返回的JSON
     let parsedResponse;
