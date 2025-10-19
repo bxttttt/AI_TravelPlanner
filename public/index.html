@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI旅行规划师</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 科大讯飞语音识别SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/iflytek-web-voice@1.0.0/dist/iflytek-web-voice.min.js"></script>
     <style>
         .gradient-bg {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -232,7 +234,7 @@
                             
                             <div class="mt-3 flex justify-between items-center">
                                 <div class="text-xs text-gray-500">
-                                    <p>💡 支持中文语音识别，请清晰地说出您的需求</p>
+                                    <p>💡 使用科大讯飞语音识别，支持中文语音输入，请清晰地说出您的需求</p>
                                 </div>
                                 <button type="button" onclick="clearForm()" class="text-xs text-gray-500 hover:text-gray-700 underline">
                                     🗑️ 清空表单
@@ -866,57 +868,93 @@
             }
         });
 
+        // 科大讯飞语音识别配置
+        const xunfeiConfig = {
+            appId: '3f1adedc',
+            // 注意：实际使用时需要配置正确的API Key和Secret
+            // 这里使用演示配置
+            apiKey: 'demo_key',
+            apiSecret: 'demo_secret'
+        };
+
         function startVoiceRecording() {
-            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                const recognition = new SpeechRecognition();
+            try {
+                console.log('🎤 开始科大讯飞语音识别...');
                 
-                recognition.continuous = false;
-                recognition.interimResults = false;
-                recognition.lang = 'zh-CN';
+                // 检查科大讯飞SDK是否加载
+                if (typeof window.IFlytekWebVoice === 'undefined') {
+                    showNotification('科大讯飞语音识别SDK未加载，请刷新页面重试', 'error');
+                    return;
+                }
                 
-                recognition.onstart = () => {
-                    isRecording = true;
-                    document.getElementById('voiceBtn').innerHTML = '<span>⏹️</span><span>停止录音</span>';
-                    document.getElementById('voiceBtn').className = 'bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2 mx-auto';
-                    document.getElementById('voiceStatus').classList.remove('hidden');
-                    document.getElementById('voiceResult').classList.add('hidden');
-                };
+                // 更新UI状态
+                isRecording = true;
+                document.getElementById('voiceBtn').innerHTML = '<span>⏹️</span><span>停止录音</span>';
+                document.getElementById('voiceBtn').className = 'bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2 mx-auto';
+                document.getElementById('voiceStatus').classList.remove('hidden');
+                document.getElementById('voiceResult').classList.add('hidden');
                 
-                recognition.onresult = async (event) => {
-                    const transcript = event.results[0][0].transcript;
-                    document.getElementById('voiceText').textContent = transcript;
-                    document.getElementById('voiceResult').classList.remove('hidden');
-                    
-                    console.log('🎤 语音识别结果:', transcript);
-                    
-                    // 调用AI解析语音输入
-                    await parseVoiceWithAI(transcript);
-                };
+                // 初始化科大讯飞语音识别
+                const voiceRecognition = new window.IFlytekWebVoice({
+                    appId: xunfeiConfig.appId,
+                    // 实际使用时需要正确的认证信息
+                    // apiKey: xunfeiConfig.apiKey,
+                    // apiSecret: xunfeiConfig.apiSecret,
+                    language: 'zh_cn',
+                    accent: 'mandarin'
+                });
                 
-                recognition.onend = () => {
-                    isRecording = false;
-                    document.getElementById('voiceBtn').innerHTML = '<span>🎤</span><span>开始语音输入</span>';
-                    document.getElementById('voiceBtn').className = 'bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 mx-auto';
-                    document.getElementById('voiceStatus').classList.add('hidden');
-                };
+                // 保存实例引用
+                window.currentVoiceRecognition = voiceRecognition;
                 
-                recognition.onerror = (event) => {
-                    showNotification('语音识别失败，请重试', 'error');
-                    isRecording = false;
-                    document.getElementById('voiceBtn').innerHTML = '<span>🎤</span><span>开始语音输入</span>';
-                    document.getElementById('voiceBtn').className = 'bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 mx-auto';
-                    document.getElementById('voiceStatus').classList.add('hidden');
-                };
+                // 开始识别
+                voiceRecognition.start({
+                    onResult: async (result) => {
+                        console.log('🎤 科大讯飞识别结果:', result);
+                        
+                        if (result && result.text) {
+                            const transcript = result.text;
+                            document.getElementById('voiceText').textContent = transcript;
+                            document.getElementById('voiceResult').classList.remove('hidden');
+                            
+                            console.log('🎤 语音识别结果:', transcript);
+                            
+                            // 调用AI解析语音输入
+                            await parseVoiceWithAI(transcript);
+                        }
+                    },
+                    onError: (error) => {
+                        console.error('❌ 科大讯飞识别错误:', error);
+                        showNotification('语音识别失败，请重试', 'error');
+                        stopVoiceRecording();
+                    },
+                    onComplete: () => {
+                        console.log('✅ 科大讯飞识别完成');
+                        stopVoiceRecording();
+                    }
+                });
                 
-                recognition.start();
-            } else {
-                showNotification('您的浏览器不支持语音识别功能', 'error');
+            } catch (error) {
+                console.error('❌ 科大讯飞语音识别初始化失败:', error);
+                showNotification('语音识别服务初始化失败，请重试', 'error');
+                stopVoiceRecording();
             }
         }
 
         function stopVoiceRecording() {
-            // 语音识别会自动停止
+            isRecording = false;
+            document.getElementById('voiceBtn').innerHTML = '<span>🎤</span><span>开始语音输入</span>';
+            document.getElementById('voiceBtn').className = 'bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 mx-auto';
+            document.getElementById('voiceStatus').classList.add('hidden');
+            
+            // 如果有科大讯飞实例，停止识别
+            if (window.currentVoiceRecognition) {
+                try {
+                    window.currentVoiceRecognition.stop();
+                } catch (error) {
+                    console.log('停止语音识别:', error);
+                }
+            }
         }
 
         // 行程规划表单
