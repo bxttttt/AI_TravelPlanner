@@ -76,8 +76,8 @@ const TripPlanner = () => {
       });
 
       if (response.data.data) {
-        // 创建新的旅行计划
-        const tripResponse = await axios.post('/api/trips', {
+        // 创建新的旅行计划，包含AI生成的行程
+        const tripData = {
           title: `${formData.destination} ${formData.startDate} 旅行`,
           destination: formData.destination,
           startDate: formData.startDate,
@@ -89,7 +89,14 @@ const TripPlanner = () => {
             specialRequirements: voiceInput
           },
           aiGenerated: true
-        });
+        };
+
+        // 如果AI返回了行程数据，添加到旅行计划中
+        if (response.data.data.itinerary && Array.isArray(response.data.data.itinerary)) {
+          tripData.itinerary = response.data.data.itinerary;
+        }
+
+        const tripResponse = await axios.post('/api/trips', tripData);
 
         toast.success('AI旅行计划生成成功！');
         navigate(`/trip/${tripResponse.data.trip._id}`);

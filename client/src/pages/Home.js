@@ -1,10 +1,84 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { MapPin, Mic, Brain, Cloud, ArrowRight, Play } from 'lucide-react';
+import axios from 'axios';
+import { MapPin, Mic, Brain, Cloud, ArrowRight, Play, Calendar, DollarSign, Users, Eye } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const Home = () => {
   const { user } = useAuth();
+  const [trips, setTrips] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [recommendations, setRecommendations] = useState(null);
+  const [recommendationsLoading, setRecommendationsLoading] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      fetchTrips();
+    }
+    // 获取默认推荐内容（以北京为例）
+    fetchRecommendations('北京');
+  }, [user]);
+
+  const fetchTrips = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get('/api/trips');
+      setTrips(response.data.slice(0, 3)); // 只显示最新的3个旅行计划
+    } catch (error) {
+      console.error('获取旅行计划失败:', error);
+      toast.error('获取旅行计划失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('zh-CN');
+  };
+
+  const fetchRecommendations = async (destination) => {
+    try {
+      setRecommendationsLoading(true);
+      const response = await axios.get(`/api/ai/recommendations?destination=${encodeURIComponent(destination)}`);
+      setRecommendations(response.data.data);
+    } catch (error) {
+      console.error('获取推荐内容失败:', error);
+      // 如果AI服务不可用，使用默认内容
+      setRecommendations({
+        restaurants: [
+          { name: '全聚德烤鸭店', specialty: '传统北京烤鸭', price_range: '¥200-300/人' },
+          { name: '东来顺涮羊肉', specialty: '老北京涮羊肉', price_range: '¥150-250/人' },
+          { name: '便宜坊烤鸭', specialty: '焖炉烤鸭', price_range: '¥180-280/人' }
+        ],
+        attractions: [
+          { name: '故宫博物院', description: '明清两代皇家宫殿', ticket_price: '¥60' },
+          { name: '天安门广场', description: '世界最大的城市广场', ticket_price: '免费' },
+          { name: '长城', description: '世界文化遗产', ticket_price: '¥45' }
+        ],
+        tips: {
+          cultural_notes: '北京人热情好客，注意礼貌用语',
+          transportation_tips: '建议使用地铁出行，避免高峰期',
+          safety_reminders: '注意保管好个人物品，避免在人多的地方露财'
+        }
+      });
+    } finally {
+      setRecommendationsLoading(false);
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case '规划中':
+        return 'bg-yellow-100 text-yellow-800';
+      case '进行中':
+        return 'bg-blue-100 text-blue-800';
+      case '已完成':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
 
   return (
     <div className="min-h-screen">
@@ -150,6 +224,96 @@ const Home = () => {
         </div>
       </section>
 
+      {/* 用户旅行计划展示区域 */}
+      {user && (
+        <section className="py-20 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                我的旅行计划
+              </h2>
+              <p className="text-xl text-gray-600">
+                查看和管理您的旅行计划
+              </p>
+            </div>
+
+            {loading ? (
+              <div className="flex justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+              </div>
+            ) : trips.length === 0 ? (
+              <div className="text-center py-12">
+                <MapPin className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">还没有旅行计划</h3>
+                <p className="text-gray-600 mb-6">开始创建您的第一个AI旅行计划吧！</p>
+                <Link
+                  to="/planner"
+                  className="bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 inline-flex items-center space-x-2"
+                >
+                  <Play className="h-5 w-5" />
+                  <span>创建旅行计划</span>
+                </Link>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                {trips.map((trip) => (
+                  <div key={trip._id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200">
+                    <div className="p-6">
+                      <div className="flex justify-between items-start mb-4">
+                        <h3 className="text-lg font-semibold text-gray-900 truncate">
+                          {trip.title}
+                        </h3>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(trip.status)}`}>
+                          {trip.status}
+                        </span>
+                      </div>
+
+                      <div className="space-y-2 mb-4">
+                        <div className="flex items-center text-sm text-gray-600">
+                          <MapPin className="h-4 w-4 mr-2" />
+                          <span>{trip.destination}</span>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          <span>{formatDate(trip.startDate)} - {formatDate(trip.endDate)}</span>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Users className="h-4 w-4 mr-2" />
+                          <span>{trip.travelers}人</span>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-600">
+                          <DollarSign className="h-4 w-4 mr-2" />
+                          <span>预算: ¥{trip.budget.toLocaleString()}</span>
+                        </div>
+                      </div>
+
+                      <Link
+                        to={`/trip/${trip._id}`}
+                        className="w-full bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 flex items-center justify-center space-x-1 text-sm"
+                      >
+                        <Eye className="h-4 w-4" />
+                        <span>查看详情</span>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {trips.length > 0 && (
+              <div className="text-center">
+                <Link
+                  to="/dashboard"
+                  className="text-primary-600 hover:text-primary-700 font-medium"
+                >
+                  查看所有旅行计划 →
+                </Link>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* CTA Section */}
       <section className="py-20 bg-primary-600 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -167,6 +331,100 @@ const Home = () => {
               <span>立即开始</span>
               <ArrowRight className="h-5 w-5" />
             </Link>
+          )}
+        </div>
+      </section>
+
+      {/* AI推荐内容区域 */}
+      <section className="py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              AI智能推荐
+            </h2>
+            <p className="text-xl text-gray-600">
+              基于AI的个性化旅行建议
+            </p>
+          </div>
+
+          {recommendationsLoading ? (
+            <div className="flex justify-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+            </div>
+          ) : recommendations ? (
+            <div className="grid lg:grid-cols-3 gap-8">
+              {/* 餐厅推荐 */}
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <div className="flex items-center mb-4">
+                  <div className="bg-red-100 w-12 h-12 rounded-full flex items-center justify-center mr-3">
+                    <span className="text-red-600 text-xl">🍽️</span>
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900">餐厅推荐</h3>
+                </div>
+                <div className="space-y-4">
+                  {recommendations.restaurants?.map((restaurant, index) => (
+                    <div key={index} className="border-l-4 border-red-500 pl-4">
+                      <h4 className="font-medium text-gray-900">{restaurant.name}</h4>
+                      <p className="text-sm text-gray-600 mb-1">{restaurant.specialty}</p>
+                      <p className="text-sm text-green-600">{restaurant.price_range}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 景点推荐 */}
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <div className="flex items-center mb-4">
+                  <div className="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mr-3">
+                    <span className="text-blue-600 text-xl">🏛️</span>
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900">景点推荐</h3>
+                </div>
+                <div className="space-y-4">
+                  {recommendations.attractions?.map((attraction, index) => (
+                    <div key={index} className="border-l-4 border-blue-500 pl-4">
+                      <h4 className="font-medium text-gray-900">{attraction.name}</h4>
+                      <p className="text-sm text-gray-600 mb-1">{attraction.description}</p>
+                      <p className="text-sm text-blue-600">门票: {attraction.ticket_price}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 实用贴士 */}
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <div className="flex items-center mb-4">
+                  <div className="bg-green-100 w-12 h-12 rounded-full flex items-center justify-center mr-3">
+                    <span className="text-green-600 text-xl">💡</span>
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900">实用贴士</h3>
+                </div>
+                <div className="space-y-4">
+                  {recommendations.tips && (
+                    <>
+                      <div className="border-l-4 border-green-500 pl-4">
+                        <h4 className="font-medium text-gray-900 mb-1">文化注意事项</h4>
+                        <p className="text-sm text-gray-600">{recommendations.tips.cultural_notes}</p>
+                      </div>
+                      <div className="border-l-4 border-green-500 pl-4">
+                        <h4 className="font-medium text-gray-900 mb-1">交通建议</h4>
+                        <p className="text-sm text-gray-600">{recommendations.tips.transportation_tips}</p>
+                      </div>
+                      <div className="border-l-4 border-green-500 pl-4">
+                        <h4 className="font-medium text-gray-900 mb-1">安全提醒</h4>
+                        <p className="text-sm text-gray-600">{recommendations.tips.safety_reminders}</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Brain className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">AI推荐服务暂时不可用</h3>
+              <p className="text-gray-600">请稍后重试或联系管理员</p>
+            </div>
           )}
         </div>
       </section>

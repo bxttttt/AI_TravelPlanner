@@ -172,36 +172,107 @@ const TripDetail = () => {
               </p>
             </div>
           </div>
+
+          {/* 每日预算建议 */}
+          {trip.itinerary && trip.itinerary.length > 0 && (
+            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">每日预算建议</h3>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {trip.itinerary.map((day, index) => {
+                  const dailyBudget = Math.round(trip.budget / trip.itinerary.length);
+                  const dailyExpenses = day.activities?.reduce((sum, act) => sum + (act.cost || 0), 0) || 0;
+                  return (
+                    <div key={index} className="bg-white p-3 rounded-lg border">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-medium text-gray-900">第{index + 1}天</span>
+                        <span className="text-sm text-gray-500">{formatDate(day.date)}</span>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">建议预算:</span>
+                          <span className="font-medium">¥{dailyBudget}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">预计花费:</span>
+                          <span className="font-medium text-blue-600">¥{dailyExpenses}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">剩余:</span>
+                          <span className={`font-medium ${dailyBudget - dailyExpenses >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            ¥{dailyBudget - dailyExpenses}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="grid lg:grid-cols-2 gap-6">
           {/* 行程安排 */}
           <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">行程安排</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-900">行程安排</h2>
+              {trip.itinerary && trip.itinerary.length > 1 && (
+                <span className="text-sm text-gray-500">
+                  {trip.itinerary.length}天行程
+                </span>
+              )}
+            </div>
             {trip.itinerary && trip.itinerary.length > 0 ? (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {trip.itinerary.map((day, index) => (
-                  <div key={index} className="border-l-4 border-primary-500 pl-4">
-                    <h3 className="font-semibold text-gray-900">{formatDate(day.date)}</h3>
-                    <div className="mt-2 space-y-2">
+                  <div key={index} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold text-gray-900 text-lg">
+                        第{index + 1}天 - {formatDate(day.date)}
+                      </h3>
+                      <span className="text-sm text-gray-500">
+                        {day.activities?.length || 0}个活动
+                      </span>
+                    </div>
+                    <div className="space-y-3">
                       {day.activities?.map((activity, actIndex) => (
-                        <div key={actIndex} className="flex items-start space-x-3">
-                          <Clock className="h-4 w-4 text-gray-400 mt-1" />
+                        <div key={actIndex} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+                          <Clock className="h-4 w-4 text-gray-400 mt-1 flex-shrink-0" />
                           <div className="flex-1">
-                            <p className="font-medium text-gray-900">{activity.title}</p>
-                            <p className="text-sm text-gray-600">{activity.description}</p>
-                            {activity.cost && (
-                              <p className="text-sm text-green-600">¥{activity.cost}</p>
+                            <div className="flex items-center justify-between">
+                              <p className="font-medium text-gray-900">{activity.title}</p>
+                              {activity.cost && (
+                                <span className="text-sm text-green-600 font-medium">¥{activity.cost}</span>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-600 mt-1">{activity.description}</p>
+                            {activity.location && (
+                              <p className="text-xs text-gray-500 mt-1">📍 {activity.location}</p>
+                            )}
+                            {activity.time && (
+                              <p className="text-xs text-blue-600 mt-1">🕐 {activity.time}</p>
                             )}
                           </div>
                         </div>
                       ))}
                     </div>
+                    {/* 每日预算统计 */}
+                    {day.activities && day.activities.some(act => act.cost) && (
+                      <div className="mt-3 p-2 bg-blue-50 rounded-lg">
+                        <p className="text-sm text-blue-800">
+                          第{index + 1}天预计费用: ¥{day.activities.reduce((sum, act) => sum + (act.cost || 0), 0)}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500">暂无行程安排</p>
+              <div className="text-center py-8">
+                <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-500">暂无行程安排</p>
+                <p className="text-sm text-gray-400 mt-1">AI正在为您生成详细的旅行计划...</p>
+              </div>
             )}
           </div>
 
