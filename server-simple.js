@@ -8,6 +8,102 @@ dotenv.config();
 
 const app = express();
 
+// 推荐内容生成函数
+function getRestaurantRecommendations(destination) {
+  if (destination.includes('日本') || destination.includes('东京')) {
+    return [
+      '银座寿司店 - 品尝正宗江户前寿司',
+      '一兰拉面 - 体验经典日式拉面',
+      '筑地市场 - 新鲜海鲜和寿司',
+      '居酒屋 - 体验日本夜生活文化'
+    ];
+  } else if (destination.includes('北京')) {
+    return [
+      '全聚德烤鸭店 - 正宗北京烤鸭',
+      '东来顺涮羊肉 - 老北京火锅',
+      '护国寺小吃 - 传统北京小吃',
+      '簋街麻辣小龙虾 - 夜宵好去处'
+    ];
+  } else if (destination.includes('上海')) {
+    return [
+      '老正兴 - 正宗本帮菜',
+      '南翔小笼包 - 上海特色点心',
+      '外滩18号 - 高端餐饮体验',
+      '城隍庙小吃 - 传统上海味道'
+    ];
+  } else {
+    return [
+      '当地特色餐厅 - 品尝地道风味',
+      '网红打卡餐厅 - 拍照留念好去处',
+      '传统老字号 - 体验历史文化',
+      '街头小吃摊 - 感受当地生活'
+    ];
+  }
+}
+
+function getAttractionRecommendations(destination) {
+  if (destination.includes('日本') || destination.includes('东京')) {
+    return [
+      '浅草寺 - 东京最古老的寺庙',
+      '东京塔 - 城市地标建筑',
+      '上野公园 - 樱花季必游景点',
+      '秋叶原 - 动漫文化圣地'
+    ];
+  } else if (destination.includes('北京')) {
+    return [
+      '故宫博物院 - 明清皇家宫殿',
+      '天安门广场 - 国家象征',
+      '长城 - 世界文化遗产',
+      '天坛公园 - 古代祭天建筑'
+    ];
+  } else if (destination.includes('上海')) {
+    return [
+      '外滩 - 万国建筑博览群',
+      '东方明珠 - 上海地标',
+      '豫园 - 江南古典园林',
+      '新天地 - 时尚文化区'
+    ];
+  } else {
+    return [
+      '历史古迹 - 了解当地文化',
+      '自然景观 - 欣赏美丽风景',
+      '文化博物馆 - 深度文化体验',
+      '现代地标 - 城市新风貌'
+    ];
+  }
+}
+
+function getTravelTips(destination, preferences) {
+  const baseTips = [
+    '提前预订热门景点门票，避免排队',
+    '下载当地交通APP，方便出行',
+    '准备常用药品，注意身体健康',
+    '关注天气预报，准备合适衣物'
+  ];
+  
+  if (destination.includes('日本')) {
+    baseTips.push('学习基本日语礼貌用语', '准备现金，很多地方不支持刷卡', '了解垃圾分类规则');
+  } else if (destination.includes('北京')) {
+    baseTips.push('下载北京地铁APP', '准备身份证件', '了解北京交通限行政策');
+  } else if (destination.includes('上海')) {
+    baseTips.push('下载上海地铁APP', '准备身份证件', '了解上海交通规则');
+  }
+  
+  if (preferences.includes('美食')) {
+    baseTips.push('提前了解当地特色美食', '准备肠胃药以防不适应');
+  }
+  
+  if (preferences.includes('文化')) {
+    baseTips.push('提前了解当地历史文化', '准备相机记录文化体验');
+  }
+  
+  if (preferences.includes('自然')) {
+    baseTips.push('准备户外装备', '关注天气变化');
+  }
+  
+  return baseTips;
+}
+
 // 中间件
 app.use(cors());
 app.use(express.json());
@@ -216,81 +312,74 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
     // 智能演示模式：根据用户输入生成个性化规划
     const days = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1;
     const dailyBudget = Math.round(budget / days);
+    const perPersonBudget = Math.round(dailyBudget / travelers);
     
-    // 根据偏好生成不同的活动
+    // 根据目的地和偏好生成更自然的活动
     const activities = [];
-    const preferences = (preferences || '').toLowerCase();
+    const userPreferences = (preferences || '').toLowerCase();
     
-    if (preferences.includes('美食') || preferences.includes('food')) {
-      activities.push({
-        time: '12:00',
-        title: '美食探索',
-        description: '品尝当地特色美食，体验地道风味',
-        location: '特色餐厅',
-        cost: Math.round(dailyBudget * 0.3),
-        category: '餐饮'
-      });
+    // 根据目的地生成特色活动
+    const destinationLower = destination.toLowerCase();
+    let destinationActivities = [];
+    
+    if (destinationLower.includes('日本') || destinationLower.includes('东京')) {
+      destinationActivities = [
+        { time: '12:00', title: '日式料理体验', description: '品尝正宗寿司和拉面，感受日本饮食文化', location: '银座寿司店', cost: Math.round(perPersonBudget * 0.3), category: '餐饮' },
+        { time: '14:00', title: '浅草寺参拜', description: '参观东京最古老的寺庙，体验传统日本文化', location: '浅草寺', cost: 0, category: '文化' },
+        { time: '16:00', title: '秋叶原购物', description: '探索动漫和电子产品天堂，购买特色纪念品', location: '秋叶原', cost: Math.round(perPersonBudget * 0.2), category: '购物' }
+      ];
+    } else if (destinationLower.includes('北京')) {
+      destinationActivities = [
+        { time: '12:00', title: '北京烤鸭', description: '品尝正宗北京烤鸭，体验老北京风味', location: '全聚德', cost: Math.round(perPersonBudget * 0.3), category: '餐饮' },
+        { time: '14:00', title: '故宫游览', description: '参观紫禁城，感受明清皇家建筑之美', location: '故宫博物院', cost: Math.round(perPersonBudget * 0.2), category: '文化' },
+        { time: '16:00', title: '王府井购物', description: '逛传统商业街，购买北京特产', location: '王府井大街', cost: Math.round(perPersonBudget * 0.15), category: '购物' }
+      ];
+    } else if (destinationLower.includes('上海')) {
+      destinationActivities = [
+        { time: '12:00', title: '本帮菜体验', description: '品尝正宗上海本帮菜，感受海派文化', location: '老正兴', cost: Math.round(perPersonBudget * 0.3), category: '餐饮' },
+        { time: '14:00', title: '外滩观光', description: '漫步外滩，欣赏黄浦江两岸美景', location: '外滩', cost: 0, category: '景点' },
+        { time: '16:00', title: '南京路购物', description: '逛中华商业第一街，体验上海繁华', location: '南京路步行街', cost: Math.round(perPersonBudget * 0.2), category: '购物' }
+      ];
+    } else {
+      // 通用活动
+      destinationActivities = [
+        { time: '12:00', title: '当地美食', description: '品尝当地特色美食，感受地方文化', location: '特色餐厅', cost: Math.round(perPersonBudget * 0.3), category: '餐饮' },
+        { time: '14:00', title: '城市观光', description: '游览当地著名景点，了解历史文化', location: '市中心景点', cost: Math.round(perPersonBudget * 0.2), category: '景点' },
+        { time: '16:00', title: '购物体验', description: '购买当地特色商品和纪念品', location: '商业街', cost: Math.round(perPersonBudget * 0.15), category: '购物' }
+      ];
     }
     
-    if (preferences.includes('文化') || preferences.includes('历史')) {
-      activities.push({
-        time: '14:00',
-        title: '文化探索',
-        description: '参观博物馆和历史古迹，了解当地文化',
-        location: '文化景点',
-        cost: Math.round(dailyBudget * 0.2),
-        category: '文化'
-      });
+    // 根据用户偏好调整活动
+    if (userPreferences.includes('美食') || userPreferences.includes('food')) {
+      destinationActivities[0].cost = Math.round(perPersonBudget * 0.4);
+      destinationActivities[0].description += '，深度体验当地美食文化';
     }
     
-    if (preferences.includes('自然') || preferences.includes('风景')) {
-      activities.push({
-        time: '16:00',
+    if (userPreferences.includes('文化') || userPreferences.includes('历史')) {
+      destinationActivities[1].cost = Math.round(perPersonBudget * 0.3);
+      destinationActivities[1].description += '，深入了解历史文化背景';
+    }
+    
+    if (userPreferences.includes('自然') || userPreferences.includes('风景')) {
+      destinationActivities.push({
+        time: '17:00',
         title: '自然风光',
         description: '欣赏自然美景，呼吸新鲜空气',
         location: '自然景区',
-        cost: Math.round(dailyBudget * 0.15),
+        cost: Math.round(perPersonBudget * 0.1),
         category: '自然'
       });
     }
     
-    // 默认活动
-    if (activities.length === 0) {
-      activities.push(
-        {
-          time: '12:00',
-          title: '午餐时间',
-          description: '品尝当地特色美食',
-          location: '市中心餐厅',
-          cost: Math.round(dailyBudget * 0.2),
-          category: '餐饮'
-        },
-        {
-          time: '14:00',
-          title: '城市观光',
-          description: '游览当地著名景点',
-          location: '市中心',
-          cost: Math.round(dailyBudget * 0.25),
-          category: '景点'
-        },
-        {
-          time: '16:00',
-          title: '购物体验',
-          description: '购买当地特色商品',
-          location: '商业街',
-          cost: Math.round(dailyBudget * 0.2),
-          category: '购物'
-        }
-      );
-    }
+    activities.push(...destinationActivities);
     
     // 添加晚餐
     activities.push({
-      time: '18:00',
-      title: '晚餐',
-      description: '享受当地特色晚餐',
+      time: '18:30',
+      title: '特色晚餐',
+      description: '享受当地特色晚餐，体验夜生活文化',
       location: '特色餐厅',
-      cost: Math.round(dailyBudget * 0.3),
+      cost: Math.round(perPersonBudget * 0.25),
       category: '餐饮'
     });
     
@@ -314,26 +403,9 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
           ]
         })),
         recommendations: {
-          restaurants: [
-            '当地特色餐厅',
-            '网红打卡餐厅',
-            '传统老字号',
-            '街头小吃摊'
-          ],
-          attractions: [
-            '历史古迹',
-            '自然景观',
-            '文化博物馆',
-            '现代地标建筑'
-          ],
-          tips: [
-            '提前预订热门景点门票',
-            '了解当地交通方式',
-            '准备常用药品',
-            '学习基本当地语言',
-            '关注天气预报',
-            '准备充电宝和相机'
-          ]
+          restaurants: getRestaurantRecommendations(destinationLower),
+          attractions: getAttractionRecommendations(destinationLower),
+          tips: getTravelTips(destinationLower, userPreferences)
         }
       }
     };
