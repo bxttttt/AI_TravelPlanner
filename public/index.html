@@ -57,6 +57,27 @@
                 </div>
             </section>
 
+            <!-- 我的旅行规划 -->
+            <section id="myTripsSection" class="py-20 bg-gray-50 hidden">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="text-center mb-16">
+                        <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">我的旅行规划</h2>
+                        <p class="text-xl text-gray-600">管理您的所有旅行计划</p>
+                    </div>
+                    <div id="tripsList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- 旅行规划卡片将在这里动态生成 -->
+                    </div>
+                    <div id="noTripsMessage" class="text-center py-12 hidden">
+                        <div class="text-gray-400 text-6xl mb-4">✈️</div>
+                        <h3 class="text-xl font-semibold text-gray-600 mb-2">还没有旅行规划</h3>
+                        <p class="text-gray-500 mb-6">开始创建您的第一个AI旅行规划吧！</p>
+                        <button id="createFirstTripBtn" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                            创建旅行规划
+                        </button>
+                    </div>
+                </div>
+            </section>
+
             <!-- 功能特性 -->
             <section class="py-20 bg-white">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -399,6 +420,7 @@
         document.getElementById('registerBtn').addEventListener('click', () => showPage('registerPage'));
         document.getElementById('settingsBtn').addEventListener('click', () => showPage('settingsPage'));
         document.getElementById('startPlanningBtn').addEventListener('click', () => showPage('plannerPage'));
+        document.getElementById('createFirstTripBtn').addEventListener('click', () => showPage('plannerPage'));
         
         // 返回主页按钮
         document.getElementById('backToHomeFromLogin').addEventListener('click', () => showPage('homePage'));
@@ -744,6 +766,9 @@
             document.getElementById('registerBtn').classList.add('hidden');
             document.getElementById('settingsBtn').classList.remove('hidden');
             document.getElementById('logoutBtn').classList.remove('hidden');
+            
+            // 显示我的旅行规划部分
+            document.getElementById('myTripsSection').classList.remove('hidden');
         }
 
         function updateNavbarForGuest() {
@@ -822,13 +847,133 @@
             }
         }
 
+        // 加载用户的旅行规划
+        async function loadUserTrips() {
+            try {
+                const response = await fetch('/api/trips', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    displayUserTrips(data.trips || []);
+                } else {
+                    console.error('加载旅行规划失败');
+                    displayUserTrips([]);
+                }
+            } catch (error) {
+                console.error('加载旅行规划失败:', error);
+                displayUserTrips([]);
+            }
+        }
+
+        // 显示用户的旅行规划
+        function displayUserTrips(trips) {
+            const tripsList = document.getElementById('tripsList');
+            const noTripsMessage = document.getElementById('noTripsMessage');
+            
+            if (trips.length === 0) {
+                tripsList.innerHTML = '';
+                noTripsMessage.classList.remove('hidden');
+                return;
+            }
+            
+            noTripsMessage.classList.add('hidden');
+            tripsList.innerHTML = trips.map(trip => `
+                <div class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">${trip.title}</h3>
+                            <div class="flex space-x-2">
+                                <button onclick="editTrip('${trip._id}')" class="text-blue-600 hover:text-blue-800 text-sm">
+                                    ✏️ 编辑
+                                </button>
+                                <button onclick="deleteTrip('${trip._id}')" class="text-red-600 hover:text-red-800 text-sm">
+                                    🗑️ 删除
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-2 mb-4">
+                            <div class="flex items-center text-gray-600">
+                                <span class="mr-2">📍</span>
+                                <span>${trip.destination}</span>
+                            </div>
+                            <div class="flex items-center text-gray-600">
+                                <span class="mr-2">📅</span>
+                                <span>${new Date(trip.startDate).toLocaleDateString('zh-CN')} - ${new Date(trip.endDate).toLocaleDateString('zh-CN')}</span>
+                            </div>
+                            <div class="flex items-center text-gray-600">
+                                <span class="mr-2">💰</span>
+                                <span>¥${trip.budget.toLocaleString()}</span>
+                            </div>
+                            <div class="flex items-center text-gray-600">
+                                <span class="mr-2">👥</span>
+                                <span>${trip.travelers}人</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-500">
+                                ${trip.aiGenerated ? '🤖 AI生成' : '📝 手动创建'}
+                            </span>
+                            <button onclick="viewTrip('${trip._id}')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors">
+                                查看详情
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 查看旅行规划详情
+        function viewTrip(tripId) {
+            // 这里可以实现查看旅行规划详情的功能
+            showNotification('查看旅行规划详情功能开发中...', 'info');
+        }
+
+        // 编辑旅行规划
+        function editTrip(tripId) {
+            // 这里可以实现编辑旅行规划的功能
+            showNotification('编辑旅行规划功能开发中...', 'info');
+        }
+
+        // 删除旅行规划
+        async function deleteTrip(tripId) {
+            if (!confirm('确定要删除这个旅行规划吗？此操作不可撤销。')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/trips/${tripId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                
+                if (response.ok) {
+                    showNotification('旅行规划删除成功', 'success');
+                    loadUserTrips(); // 重新加载列表
+                } else {
+                    showNotification('删除失败，请重试', 'error');
+                }
+            } catch (error) {
+                console.error('删除旅行规划失败:', error);
+                showNotification('删除失败，请重试', 'error');
+            }
+        }
+
         // 检查是否已登录
         window.addEventListener('load', () => {
             const token = localStorage.getItem('token');
             if (token) {
                 // 可以在这里验证token并自动登录
                 updateNavbarForLoggedInUser();
-                showPage('plannerPage');
+                loadUserTrips(); // 加载用户的旅行规划
+                showPage('homePage');
             } else {
                 updateNavbarForGuest();
                 showPage('homePage');
