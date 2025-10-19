@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高德地图API测试</title>
+    <script src="https://webapi.amap.com/maps?v=2.0&key=bcc1de3faa5eba739163b06b76138200"></script>
+    <style>
+        body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+        #mapContainer { width: 100%; height: 400px; border: 1px solid #ccc; margin: 20px 0; }
+        .test-result { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <h1>🗺️ 高德地图API测试</h1>
+    
+    <div id="testResults"></div>
+    
+    <div id="mapContainer"></div>
+    
+    <button onclick="testMapFeatures()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        测试地图功能
+    </button>
+
+    <script>
+        let map = null;
+        const resultsDiv = document.getElementById('testResults');
+        
+        function addTestResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.textContent = message;
+            resultsDiv.appendChild(div);
+        }
+        
+        function testAmapSDK() {
+            addTestResult('🔍 开始测试高德地图SDK...', 'info');
+            
+            if (typeof AMap === 'undefined') {
+                addTestResult('❌ 高德地图SDK未加载', 'error');
+                return false;
+            }
+            
+            addTestResult('✅ 高德地图SDK加载成功', 'success');
+            addTestResult(`📊 SDK版本: ${AMap.version || '未知'}`, 'info');
+            return true;
+        }
+        
+        function initMap() {
+            try {
+                addTestResult('🗺️ 初始化地图...', 'info');
+                
+                map = new AMap.Map('mapContainer', {
+                    zoom: 12,
+                    center: [116.397428, 39.90923], // 北京
+                    mapStyle: 'amap://styles/normal'
+                });
+                
+                // 添加控件
+                map.addControl(new AMap.Scale());
+                map.addControl(new AMap.ToolBar());
+                
+                addTestResult('✅ 地图初始化成功', 'success');
+                return true;
+            } catch (error) {
+                addTestResult(`❌ 地图初始化失败: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        function testMapFeatures() {
+            resultsDiv.innerHTML = '';
+            
+            // 测试SDK
+            if (!testAmapSDK()) {
+                return;
+            }
+            
+            // 初始化地图
+            if (!initMap()) {
+                return;
+            }
+            
+            // 测试标记功能
+            testMarkers();
+            
+            // 测试路线规划
+            testRoutePlanning();
+        }
+        
+        function testMarkers() {
+            try {
+                addTestResult('📍 测试标记功能...', 'info');
+                
+                // 添加北京标记
+                const beijingMarker = new AMap.Marker({
+                    position: [116.397428, 39.90923],
+                    title: '北京天安门',
+                    content: '<div style="background: #3b82f6; color: white; padding: 4px 8px; border-radius: 4px;">北京</div>'
+                });
+                map.add(beijingMarker);
+                
+                // 添加上海标记
+                const shanghaiMarker = new AMap.Marker({
+                    position: [121.473701, 31.230416],
+                    title: '上海外滩',
+                    content: '<div style="background: #28a745; color: white; padding: 4px 8px; border-radius: 4px;">上海</div>'
+                });
+                map.add(shanghaiMarker);
+                
+                addTestResult('✅ 标记功能测试成功', 'success');
+            } catch (error) {
+                addTestResult(`❌ 标记功能测试失败: ${error.message}`, 'error');
+            }
+        }
+        
+        function testRoutePlanning() {
+            try {
+                addTestResult('🛣️ 测试路线规划功能...', 'info');
+                
+                const driving = new AMap.Driving({
+                    map: map,
+                    showTraffic: false,
+                    hideMarkers: true
+                });
+                
+                // 从北京到上海的路线
+                const startPoint = [116.397428, 39.90923]; // 北京
+                const endPoint = [121.473701, 31.230416];   // 上海
+                
+                driving.search(startPoint, endPoint, (status, result) => {
+                    if (status === 'complete') {
+                        addTestResult('✅ 路线规划功能测试成功', 'success');
+                        addTestResult(`📊 路线距离: ${result.routes[0].distance}米`, 'info');
+                        addTestResult(`⏱️ 预计时间: ${Math.round(result.routes[0].time / 60)}分钟`, 'info');
+                    } else {
+                        addTestResult(`⚠️ 路线规划失败: ${result}`, 'error');
+                    }
+                });
+                
+            } catch (error) {
+                addTestResult(`❌ 路线规划功能测试失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 页面加载完成后自动测试
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                testMapFeatures();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

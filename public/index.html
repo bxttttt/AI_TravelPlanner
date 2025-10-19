@@ -1734,8 +1734,24 @@
                             
                             <!-- 行程路线地图 -->
                             <div class="mt-6">
-                                <h4 class="text-lg font-semibold text-gray-900 mb-4">🗺️ 行程路线地图</h4>
+                                <div class="flex justify-between items-center mb-4">
+                                    <h4 class="text-lg font-semibold text-gray-900">🗺️ 行程路线地图</h4>
+                                    ${trip.aiData.itinerary && trip.aiData.itinerary.length > 1 ? `
+                                        <div class="flex items-center space-x-2">
+                                            <button id="mapPrevDayBtn" class="px-3 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                                                ← 前一天
+                                            </button>
+                                            <span id="mapDayInfo" class="text-sm text-gray-600 px-3 py-1 bg-gray-100 rounded-md">全部行程</span>
+                                            <button id="mapNextDayBtn" class="px-3 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                第1天 →
+                                            </button>
+                                        </div>
+                                    ` : ''}
+                                </div>
                                 <div id="tripMap" style="width: 100%; height: 400px; border-radius: 8px; border: 1px solid #e5e7eb;"></div>
+                                <div class="mt-2 text-sm text-gray-500 text-center">
+                                    💡 点击标记点查看详细信息，使用地图控件进行缩放和导航
+                                </div>
                             </div>
                         </div>
                     ` : `
@@ -1769,12 +1785,13 @@
             // 延迟初始化地图，确保DOM元素已渲染
             setTimeout(() => {
                 if (document.getElementById('tripMap')) {
-                    initAmapMap();
+                    initAmapMap(trip.destination);
                     
                     // 如果有AI数据，绘制路线
                     if (trip.aiData) {
                         setTimeout(() => {
                             drawTripRoute(trip.aiData);
+                            setupMapDayNavigation(trip.aiData);
                         }, 500);
                     }
                 }
@@ -1949,7 +1966,7 @@
         let currentTripData = null;
 
         // 初始化高德地图
-        function initAmapMap() {
+        function initAmapMap(destination = null) {
             try {
                 if (typeof AMap === 'undefined') {
                     console.log('⚠️ 高德地图SDK未加载');
@@ -1958,16 +1975,32 @@
 
                 console.log('✅ 高德地图SDK已加载，开始初始化地图');
                 
+                // 根据目的地设置地图中心点和缩放级别
+                let center, zoom;
+                if (destination) {
+                    const coords = getCityCoordinates(destination);
+                    center = coords;
+                    zoom = 11; // 城市级别缩放
+                    console.log(`🗺️ 设置地图中心为: ${destination} (${coords})`);
+                } else {
+                    center = [116.397428, 39.90923]; // 默认北京
+                    zoom = 12;
+                }
+                
                 // 创建地图实例
                 amapInstance = new AMap.Map('tripMap', {
-                    zoom: 12,
-                    center: [116.397428, 39.90923], // 默认中心点（北京）
-                    mapStyle: 'amap://styles/normal'
+                    zoom: zoom,
+                    center: center,
+                    mapStyle: 'amap://styles/normal',
+                    viewMode: '3D', // 3D视角
+                    pitch: 45, // 倾斜角度
+                    rotation: 0 // 旋转角度
                 });
 
                 // 添加地图控件
                 amapInstance.addControl(new AMap.Scale());
                 amapInstance.addControl(new AMap.ToolBar());
+                amapInstance.addControl(new AMap.ControlBar());
                 
                 console.log('✅ 高德地图初始化成功');
                 return true;
@@ -1978,24 +2011,26 @@
         }
 
         // 根据行程数据绘制路线
-        function drawTripRoute(tripData) {
+        function drawTripRoute(tripData, dayIndex = null) {
             if (!amapInstance || !tripData) {
                 console.log('⚠️ 地图未初始化或行程数据为空');
                 return;
             }
 
             try {
-                console.log('🗺️ 开始绘制行程路线:', tripData);
+                console.log('🗺️ 开始绘制行程路线:', tripData, dayIndex !== null ? `第${dayIndex + 1}天` : '全部行程');
                 
                 // 清除之前的标记和路线
                 amapInstance.clearMap();
                 
                 // 获取行程中的地点信息
-                const locations = extractLocationsFromTrip(tripData);
+                const locations = extractLocationsFromTrip(tripData, dayIndex);
                 console.log('📍 提取的地点信息:', locations);
                 
                 if (locations.length === 0) {
                     console.log('⚠️ 未找到有效的地点信息');
+                    // 显示默认城市视图
+                    showDefaultCityView(tripData.destination || '北京');
                     return;
                 }
 
@@ -2003,11 +2038,7 @@
                 const markers = [];
                 locations.forEach((location, index) => {
                     if (location.lng && location.lat) {
-                        const marker = new AMap.Marker({
-                            position: [location.lng, location.lat],
-                            title: location.name,
-                            content: `<div style="background: #3b82f6; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${index + 1}</div>`
-                        });
+                        const marker = createEnhancedMarker(location, index, dayIndex);
                         amapInstance.add(marker);
                         markers.push(marker);
                     }
@@ -2020,7 +2051,7 @@
 
                 // 调整地图视野以包含所有标记
                 if (markers.length > 0) {
-                    amapInstance.setFitView(markers);
+                    amapInstance.setFitView(markers, false, [20, 20, 20, 20]);
                 }
 
                 console.log('✅ 行程路线绘制完成');
@@ -2029,12 +2060,90 @@
             }
         }
 
+        // 创建增强的标记点
+        function createEnhancedMarker(location, index, dayIndex) {
+            const dayText = dayIndex !== null ? `D${dayIndex + 1}` : '';
+            const markerContent = `
+                <div style="
+                    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+                    color: white;
+                    padding: 8px 12px;
+                    border-radius: 8px;
+                    font-size: 14px;
+                    font-weight: bold;
+                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+                    border: 2px solid white;
+                    min-width: 40px;
+                    text-align: center;
+                ">
+                    ${dayText}${index + 1}
+                </div>
+            `;
+
+            const marker = new AMap.Marker({
+                position: [location.lng, location.lat],
+                title: location.name,
+                content: markerContent,
+                anchor: 'center'
+            });
+
+            // 添加信息窗口
+            const infoWindow = new AMap.InfoWindow({
+                content: `
+                    <div style="padding: 10px; max-width: 200px;">
+                        <h4 style="margin: 0 0 5px 0; color: #1f2937; font-size: 16px;">${location.name}</h4>
+                        <p style="margin: 0; color: #6b7280; font-size: 14px;">${location.description || '行程地点'}</p>
+                        ${dayIndex !== null ? `<p style="margin: 5px 0 0 0; color: #3b82f6; font-size: 12px;">第${dayIndex + 1}天行程</p>` : ''}
+                    </div>
+                `,
+                offset: new AMap.Pixel(0, -30)
+            });
+
+            marker.on('click', () => {
+                infoWindow.open(amapInstance, marker.getPosition());
+            });
+
+            return marker;
+        }
+
+        // 显示默认城市视图
+        function showDefaultCityView(destination) {
+            const coords = getCityCoordinates(destination);
+            amapInstance.setCenter(coords);
+            amapInstance.setZoom(11);
+            
+            // 添加城市中心标记
+            const cityMarker = new AMap.Marker({
+                position: coords,
+                title: destination,
+                content: `
+                    <div style="
+                        background: linear-gradient(135deg, #10b981, #059669);
+                        color: white;
+                        padding: 12px 16px;
+                        border-radius: 12px;
+                        font-size: 16px;
+                        font-weight: bold;
+                        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+                        border: 3px solid white;
+                        text-align: center;
+                    ">
+                        📍 ${destination}
+                    </div>
+                `,
+                anchor: 'center'
+            });
+            amapInstance.add(cityMarker);
+        }
+
         // 从行程数据中提取地点信息
-        function extractLocationsFromTrip(tripData) {
+        function extractLocationsFromTrip(tripData, dayIndex = null) {
             const locations = [];
             
             if (tripData.itinerary && Array.isArray(tripData.itinerary)) {
-                tripData.itinerary.forEach(day => {
+                if (dayIndex !== null && dayIndex < tripData.itinerary.length) {
+                    // 提取指定天的地点
+                    const day = tripData.itinerary[dayIndex];
                     if (day.activities && Array.isArray(day.activities)) {
                         day.activities.forEach(activity => {
                             if (activity.location && activity.location.name) {
@@ -2042,12 +2151,30 @@
                                     name: activity.location.name,
                                     lng: activity.location.lng,
                                     lat: activity.location.lat,
-                                    description: activity.activity
+                                    description: activity.activity,
+                                    day: dayIndex + 1
                                 });
                             }
                         });
                     }
-                });
+                } else {
+                    // 提取所有天的地点
+                    tripData.itinerary.forEach((day, index) => {
+                        if (day.activities && Array.isArray(day.activities)) {
+                            day.activities.forEach(activity => {
+                                if (activity.location && activity.location.name) {
+                                    locations.push({
+                                        name: activity.location.name,
+                                        lng: activity.location.lng,
+                                        lat: activity.location.lat,
+                                        description: activity.activity,
+                                        day: index + 1
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
             }
             
             return locations;
@@ -2060,11 +2187,16 @@
             const validLocations = locations.filter(loc => loc.lng && loc.lat);
             if (validLocations.length < 2) return;
 
+            console.log('🛣️ 开始绘制路线，地点数量:', validLocations.length);
+
             // 使用高德地图路径规划服务
             const driving = new AMap.Driving({
                 map: amapInstance,
                 showTraffic: false,
-                hideMarkers: true
+                hideMarkers: true,
+                autoFitView: false,
+                showTraffic: false,
+                policy: AMap.DrivingPolicy.LEAST_TIME // 最短时间路径
             });
 
             // 设置起点和终点
@@ -2074,10 +2206,68 @@
             driving.search(startPoint, endPoint, (status, result) => {
                 if (status === 'complete') {
                     console.log('✅ 路线规划成功');
+                    
+                    // 添加路线信息显示
+                    if (result.routes && result.routes.length > 0) {
+                        const route = result.routes[0];
+                        console.log(`📏 路线距离: ${(route.distance / 1000).toFixed(1)}公里`);
+                        console.log(`⏱️ 预计时间: ${Math.round(route.time / 60)}分钟`);
+                        
+                        // 添加路线信息标记
+                        addRouteInfoMarker(route, startPoint);
+                    }
                 } else {
                     console.log('⚠️ 路线规划失败:', result);
+                    // 如果路线规划失败，绘制直线连接
+                    drawStraightLineRoute(validLocations);
                 }
             });
+        }
+
+        // 添加路线信息标记
+        function addRouteInfoMarker(route, startPoint) {
+            const infoContent = `
+                <div style="
+                    background: linear-gradient(135deg, #10b981, #059669);
+                    color: white;
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    font-size: 12px;
+                    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+                    border: 1px solid white;
+                ">
+                    📏 ${(route.distance / 1000).toFixed(1)}km<br>
+                    ⏱️ ${Math.round(route.time / 60)}min
+                </div>
+            `;
+
+            const infoMarker = new AMap.Marker({
+                position: startPoint,
+                content: infoContent,
+                anchor: 'bottom-center',
+                offset: new AMap.Pixel(0, -10)
+            });
+            
+            amapInstance.add(infoMarker);
+        }
+
+        // 绘制直线连接路线（备用方案）
+        function drawStraightLineRoute(locations) {
+            console.log('📏 绘制直线连接路线');
+            
+            const path = locations.map(loc => [loc.lng, loc.lat]);
+            
+            const polyline = new AMap.Polyline({
+                path: path,
+                strokeColor: '#3b82f6',
+                strokeWeight: 4,
+                strokeOpacity: 0.8,
+                strokeStyle: 'solid',
+                lineJoin: 'round',
+                lineCap: 'round'
+            });
+            
+            amapInstance.add(polyline);
         }
 
         // 根据城市名称获取坐标
@@ -2116,6 +2306,75 @@
             };
             
             return cityCoordinates[cityName] || [116.397428, 39.90923]; // 默认返回北京坐标
+        }
+
+        // 地图按天导航功能
+        let currentMapDay = -1; // -1表示显示全部行程
+        let totalMapDays = 0;
+
+        function setupMapDayNavigation(tripData) {
+            if (!tripData.itinerary || tripData.itinerary.length <= 1) {
+                return; // 只有一天或没有行程，不需要导航
+            }
+
+            totalMapDays = tripData.itinerary.length;
+            currentMapDay = -1; // 默认显示全部行程
+
+            const prevBtn = document.getElementById('mapPrevDayBtn');
+            const nextBtn = document.getElementById('mapNextDayBtn');
+            const dayInfo = document.getElementById('mapDayInfo');
+
+            if (!prevBtn || !nextBtn || !dayInfo) {
+                return;
+            }
+
+            // 更新按钮状态
+            updateMapDayButtons();
+
+            // 前一天按钮
+            prevBtn.addEventListener('click', () => {
+                if (currentMapDay > -1) {
+                    currentMapDay--;
+                    updateMapDayDisplay();
+                    drawTripRoute(tripData, currentMapDay === -1 ? null : currentMapDay);
+                }
+            });
+
+            // 后一天按钮
+            nextBtn.addEventListener('click', () => {
+                if (currentMapDay < totalMapDays - 1) {
+                    currentMapDay++;
+                    updateMapDayDisplay();
+                    drawTripRoute(tripData, currentMapDay === -1 ? null : currentMapDay);
+                }
+            });
+        }
+
+        function updateMapDayDisplay() {
+            const dayInfo = document.getElementById('mapDayInfo');
+            if (dayInfo) {
+                if (currentMapDay === -1) {
+                    dayInfo.textContent = '全部行程';
+                } else {
+                    dayInfo.textContent = `第${currentMapDay + 1}天`;
+                }
+            }
+        }
+
+        function updateMapDayButtons() {
+            const prevBtn = document.getElementById('mapPrevDayBtn');
+            const nextBtn = document.getElementById('mapNextDayBtn');
+
+            if (prevBtn) {
+                prevBtn.disabled = currentMapDay <= -1;
+                prevBtn.textContent = currentMapDay === -1 ? '← 全部' : '← 前一天';
+            }
+
+            if (nextBtn) {
+                nextBtn.disabled = currentMapDay >= totalMapDays - 1;
+                nextBtn.textContent = currentMapDay === -1 ? '第1天 →' : 
+                    (currentMapDay < totalMapDays - 1 ? `第${currentMapDay + 2}天 →` : '最后一天');
+            }
         }
 
         // 页面加载完成后检查SDK
