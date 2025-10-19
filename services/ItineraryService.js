@@ -314,7 +314,11 @@ class ItineraryService {
      * 获取活动优先级
      */
     getActivityPriority(activity, preferences) {
-        if (preferences.interests && preferences.interests.some(interest => 
+        if (!activity || !activity.name || !activity.description) {
+            return 'medium';
+        }
+        
+        if (preferences && preferences.interests && preferences.interests.some(interest => 
             activity.name.includes(interest) || activity.description.includes(interest))) {
             return 'high';
         }
