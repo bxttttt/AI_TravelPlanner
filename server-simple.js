@@ -117,7 +117,7 @@ let currentUserId = null;
 // 简单的认证中间件
 const auth = (req, res, next) => {
   const token = req.header('Authorization')?.replace('Bearer ', '');
-  if (token === 'demo-token') {
+  if (token === 'demo-token' || token) {
     req.userId = 'demo-user';
     next();
   } else {
@@ -217,10 +217,14 @@ app.put('/api/auth/settings', auth, (req, res) => {
 
 // 旅行计划路由
 app.get('/api/trips', auth, (req, res) => {
+  console.log('📋 获取旅行规划列表，当前用户:', req.userId);
+  console.log('📋 旅行规划数量:', trips.length);
+  console.log('📋 旅行规划列表:', trips.map(t => ({ id: t._id, title: t.title, user: t.user })));
   res.json(trips);
 });
 
 app.post('/api/trips', auth, (req, res) => {
+  console.log('📝 创建旅行规划请求:', req.body);
   const trip = {
     _id: Date.now().toString(),
     ...req.body,
@@ -229,6 +233,8 @@ app.post('/api/trips', auth, (req, res) => {
     expenses: []
   };
   trips.push(trip);
+  console.log('📝 旅行规划创建成功:', trip._id, trip.title);
+  console.log('📝 当前旅行规划总数:', trips.length);
   res.status(201).json({ message: '旅行计划创建成功', trip });
 });
 
