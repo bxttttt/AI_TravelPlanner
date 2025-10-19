@@ -494,14 +494,31 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
     
     console.log('API调用成功！');
     const aiResponse = response.data.choices[0].message.content;
+    console.log('AI原始响应:', aiResponse.substring(0, 200) + '...');
     
     // 尝试解析AI返回的JSON
     let parsedResponse;
     try {
-      parsedResponse = JSON.parse(aiResponse);
+      // 清理可能的代码块标记
+      let cleanResponse = aiResponse;
+      if (cleanResponse.includes('```json')) {
+        cleanResponse = cleanResponse.replace(/```json\s*/, '').replace(/```\s*$/, '');
+      }
+      if (cleanResponse.includes('```')) {
+        cleanResponse = cleanResponse.replace(/```\s*/, '').replace(/```\s*$/, '');
+      }
+      
+      parsedResponse = JSON.parse(cleanResponse);
+      console.log('✅ JSON解析成功');
     } catch (parseError) {
-      // 如果解析失败，使用原始响应
-      parsedResponse = {
+      console.log('❌ JSON解析失败:', parseError.message);
+      console.log('原始响应:', aiResponse);
+      
+      // 如果解析失败，使用智能降级
+      console.log('🔄 使用智能降级模式...');
+      
+      // 如果解析失败，使用智能降级
+      const fallbackResponse = {
         summary: `AI为您规划了${destination}的${travelers}人旅行`,
         itinerary: [
           {
@@ -519,6 +536,14 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
           }
         ]
       };
+      
+      res.json({
+        message: 'AI服务响应格式异常，为您提供智能演示规划',
+        apiStatus: 'format_error',
+        apiMessage: '⚠️ AI响应格式异常，已使用智能降级模式',
+        data: fallbackResponse
+      });
+      return;
     }
     
     res.json({
