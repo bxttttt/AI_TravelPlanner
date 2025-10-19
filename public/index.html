@@ -197,16 +197,46 @@
                         <div class="border-2 border-dashed border-blue-300 rounded-lg p-6 text-center">
                             <div class="flex items-center justify-center mb-4">
                                 <span class="text-2xl mr-2">🎤</span>
-                                <h3 class="text-lg font-semibold text-gray-900">语音输入</h3>
+                                <h3 class="text-lg font-semibold text-gray-900">智能语音输入</h3>
                             </div>
+                            <p class="text-sm text-gray-600 mb-4">说出您的旅行需求，AI会自动填写表单</p>
+                            
+                            <!-- 语音示例 -->
+                            <div class="bg-gray-50 rounded-lg p-4 mb-4 text-left">
+                                <h4 class="text-sm font-semibold text-gray-800 mb-2">💡 语音示例：</h4>
+                                <div class="text-xs text-gray-600 space-y-1">
+                                    <p>• "我想去日本，5天，预算1万元，喜欢美食和动漫，带孩子"</p>
+                                    <p>• "计划去韩国旅行，3天时间，预算5000元，2个人，喜欢购物"</p>
+                                    <p>• "到泰国玩7天，预算8000元，4个人，喜欢自然风景"</p>
+                                </div>
+                            </div>
+                            
                             <button type="button" id="voiceBtn" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 mx-auto">
                                 <span>🎤</span>
                                 <span>开始语音输入</span>
                             </button>
+                            
+                            <!-- 语音状态指示器 -->
+                            <div id="voiceStatus" class="mt-4 p-3 bg-gray-50 rounded-lg hidden">
+                                <div class="flex items-center justify-center">
+                                    <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                                    <span class="text-sm text-blue-600">正在识别语音...</span>
+                                </div>
+                            </div>
+                            
                             <div id="voiceResult" class="mt-4 p-4 bg-blue-50 rounded-lg hidden">
                                 <p class="text-sm text-blue-800">
                                     <strong>语音识别结果：</strong> <span id="voiceText"></span>
                                 </p>
+                            </div>
+                            
+                            <div class="mt-3 flex justify-between items-center">
+                                <div class="text-xs text-gray-500">
+                                    <p>💡 支持中文语音识别，请清晰地说出您的需求</p>
+                                </div>
+                                <button type="button" onclick="clearForm()" class="text-xs text-gray-500 hover:text-gray-700 underline">
+                                    🗑️ 清空表单
+                                </button>
                             </div>
                         </div>
 
@@ -529,6 +559,155 @@
             }
         });
 
+        // 清空表单函数
+        function clearForm() {
+            document.getElementById('destination').value = '';
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            document.getElementById('budget').value = '';
+            document.getElementById('travelers').value = '';
+            document.getElementById('preferences').value = '';
+            document.getElementById('voiceText').textContent = '';
+            document.getElementById('voiceResult').classList.add('hidden');
+            showNotification('表单已清空', 'success');
+        }
+
+        // 智能语音解析函数
+        function parseVoiceInput(transcript) {
+            console.log('🧠 开始解析语音输入:', transcript);
+            
+            // 目的地解析 - 支持多种表达方式
+            const destinationPatterns = [
+                /去(.+?)(?:，|$|旅行|旅游)/,
+                /到(.+?)(?:，|$|旅行|旅游)/,
+                /(.+?)(?:旅行|旅游)(?:，|$)/,
+                /我想去(.+?)(?:，|$)/,
+                /计划去(.+?)(?:，|$)/
+            ];
+            
+            let destination = null;
+            for (const pattern of destinationPatterns) {
+                const match = transcript.match(pattern);
+                if (match) {
+                    destination = match[1].trim();
+                    break;
+                }
+            }
+            
+            // 天数解析 - 支持多种表达方式
+            const daysPatterns = [
+                /(\d+)(?:天|日)/,
+                /(\d+)(?:天|日)的旅行/,
+                /玩(\d+)(?:天|日)/,
+                /(\d+)(?:天|日)时间/
+            ];
+            
+            let days = null;
+            for (const pattern of daysPatterns) {
+                const match = transcript.match(pattern);
+                if (match) {
+                    days = parseInt(match[1]);
+                    break;
+                }
+            }
+            
+            // 预算解析 - 支持多种表达方式
+            const budgetPatterns = [
+                /预算(\d+)(?:元|万|千)/,
+                /(\d+)(?:元|万|千)预算/,
+                /(\d+)(?:元|万|千)左右/,
+                /(\d+)(?:元|万|千)以内/,
+                /花费(\d+)(?:元|万|千)/,
+                /(\d+)(?:元|万|千)的花费/
+            ];
+            
+            let budget = null;
+            for (const pattern of budgetPatterns) {
+                const match = transcript.match(pattern);
+                if (match) {
+                    let amount = parseInt(match[1]);
+                    if (transcript.includes('万')) {
+                        amount = amount * 10000;
+                    } else if (transcript.includes('千')) {
+                        amount = amount * 1000;
+                    }
+                    budget = amount;
+                    break;
+                }
+            }
+            
+            // 人数解析
+            const peoplePatterns = [
+                /(\d+)(?:人|个)/,
+                /(\d+)(?:人|个)一起/,
+                /(\d+)(?:人|个)同行/,
+                /带(\d+)(?:人|个)/
+            ];
+            
+            let people = null;
+            for (const pattern of peoplePatterns) {
+                const match = transcript.match(pattern);
+                if (match) {
+                    people = parseInt(match[1]);
+                    break;
+                }
+            }
+            
+            // 偏好解析 - 提取关键词
+            const preferenceKeywords = {
+                '美食': ['美食', '吃', '餐厅', '小吃', '料理', '美食'],
+                '购物': ['购物', '买', '商店', '商场', '购物'],
+                '文化': ['文化', '历史', '博物馆', '古迹', '传统'],
+                '自然': ['自然', '风景', '山水', '公园', '海滩'],
+                '动漫': ['动漫', '动画', '二次元', '手办', '漫画'],
+                '娱乐': ['娱乐', '游乐', '游戏', 'KTV', '酒吧'],
+                '亲子': ['亲子', '孩子', '儿童', '家庭', '带娃']
+            };
+            
+            let preferences = [];
+            for (const [category, keywords] of Object.entries(preferenceKeywords)) {
+                for (const keyword of keywords) {
+                    if (transcript.includes(keyword)) {
+                        preferences.push(category);
+                        break;
+                    }
+                }
+            }
+            
+            // 应用解析结果
+            if (destination) {
+                document.getElementById('destination').value = destination;
+                console.log('✅ 解析到目的地:', destination);
+            }
+            
+            if (days) {
+                const startDate = new Date();
+                const endDate = new Date();
+                endDate.setDate(startDate.getDate() + days);
+                document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+                document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+                console.log('✅ 解析到天数:', days);
+            }
+            
+            if (budget) {
+                document.getElementById('budget').value = budget;
+                console.log('✅ 解析到预算:', budget);
+            }
+            
+            if (people) {
+                document.getElementById('travelers').value = people;
+                console.log('✅ 解析到人数:', people);
+            }
+            
+            if (preferences.length > 0) {
+                document.getElementById('preferences').value = preferences.join(', ');
+                console.log('✅ 解析到偏好:', preferences);
+            }
+            
+            // 显示解析结果
+            showNotification(`语音解析完成！已识别：${destination ? '目的地' : ''}${days ? '天数' : ''}${budget ? '预算' : ''}${people ? '人数' : ''}${preferences.length > 0 ? '偏好' : ''}`, 'success');
+        }
+
         // 语音输入
         document.getElementById('voiceBtn').addEventListener('click', () => {
             if (!isRecording) {
@@ -551,6 +730,8 @@
                     isRecording = true;
                     document.getElementById('voiceBtn').innerHTML = '<span>⏹️</span><span>停止录音</span>';
                     document.getElementById('voiceBtn').className = 'bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2 mx-auto';
+                    document.getElementById('voiceStatus').classList.remove('hidden');
+                    document.getElementById('voiceResult').classList.add('hidden');
                 };
                 
                 recognition.onresult = (event) => {
@@ -558,33 +739,17 @@
                     document.getElementById('voiceText').textContent = transcript;
                     document.getElementById('voiceResult').classList.remove('hidden');
                     
-                    // 尝试从语音输入中提取信息
-                    const destinationMatch = transcript.match(/去(.+?)(?:，|$)/);
-                    const budgetMatch = transcript.match(/(\d+)(?:元|万|千)/);
-                    const daysMatch = transcript.match(/(\d+)(?:天|日)/);
+                    console.log('🎤 语音识别结果:', transcript);
                     
-                    if (destinationMatch) {
-                        document.getElementById('destination').value = destinationMatch[1];
-                    }
-                    if (budgetMatch) {
-                        document.getElementById('budget').value = budgetMatch[1];
-                    }
-                    if (daysMatch) {
-                        const days = parseInt(daysMatch[1]);
-                        const startDate = new Date();
-                        const endDate = new Date();
-                        endDate.setDate(startDate.getDate() + days);
-                        document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
-                        document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
-                    }
-                    
-                    document.getElementById('preferences').value = transcript;
+                    // 智能解析语音输入
+                    parseVoiceInput(transcript);
                 };
                 
                 recognition.onend = () => {
                     isRecording = false;
                     document.getElementById('voiceBtn').innerHTML = '<span>🎤</span><span>开始语音输入</span>';
                     document.getElementById('voiceBtn').className = 'bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 mx-auto';
+                    document.getElementById('voiceStatus').classList.add('hidden');
                 };
                 
                 recognition.onerror = (event) => {
@@ -592,6 +757,7 @@
                     isRecording = false;
                     document.getElementById('voiceBtn').innerHTML = '<span>🎤</span><span>开始语音输入</span>';
                     document.getElementById('voiceBtn').className = 'bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 mx-auto';
+                    document.getElementById('voiceStatus').classList.add('hidden');
                 };
                 
                 recognition.start();
