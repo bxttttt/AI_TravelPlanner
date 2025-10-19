@@ -673,7 +673,8 @@
                                 interests: formData.preferences.split(',').map(s => s.trim()),
                                 specialRequirements: document.getElementById('voiceText').textContent || ''
                             },
-                            aiGenerated: true
+                            aiGenerated: true,
+                            aiData: data.data // 传递AI生成的数据
                         })
                     });
                     

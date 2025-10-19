@@ -188,7 +188,7 @@ let users = [];
 
 // 旅行计划接口
 app.post('/api/trips', auth, (req, res) => {
-  const { title, destination, startDate, endDate, budget, travelers, preferences, aiGenerated } = req.body;
+  const { title, destination, startDate, endDate, budget, travelers, preferences, aiGenerated, aiData } = req.body;
   
   const trip = {
     _id: Date.now().toString(),
@@ -201,6 +201,7 @@ app.post('/api/trips', auth, (req, res) => {
     travelers,
     preferences,
     aiGenerated,
+    aiData: aiData || null, // 保存AI生成的数据
     user: req.user.id,
     createdAt: new Date().toISOString()
   };
