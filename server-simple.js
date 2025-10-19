@@ -496,9 +496,10 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
     const aiResponse = response.data.choices[0].message.content;
     console.log('AI原始响应:', aiResponse.substring(0, 200) + '...');
     
-    // 尝试解析AI返回的JSON
-    let parsedResponse;
-    try {
+    // 解析AI响应
+    let parsedResponse = parseAIResponse(aiResponse, destination, travelers, startDate);
+    
+    function parseAIResponse(aiResponse, destination, travelers, startDate) {
       // 清理可能的代码块标记
       let cleanResponse = aiResponse;
       if (cleanResponse.includes('```json')) {
@@ -508,105 +509,103 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
         cleanResponse = cleanResponse.replace(/```\s*/, '').replace(/```\s*$/, '');
       }
       
-      // 尝试修复常见的JSON语法错误
-      cleanResponse = cleanResponse
-        .replace(/,(\s*[}\]])/g, '$1') // 移除多余的逗号
-        .replace(/(\d+)\s*(\n\s*[}\]])/g, '$1$2') // 修复数字后缺少逗号的问题
-        .replace(/(\w+)\s*(\n\s*[}\]])/g, '"$1"$2'); // 修复未引用的字符串
-      
-      parsedResponse = JSON.parse(cleanResponse);
-      console.log('✅ JSON解析成功');
-    } catch (parseError) {
-      console.log('❌ JSON解析失败:', parseError.message);
-      console.log('清理后的响应:', cleanResponse.substring(0, 500) + '...');
-      
-      // 如果解析失败，尝试提取基本信息
-      console.log('🔄 尝试提取基本信息...');
-      
+      // 尝试解析JSON
       try {
-        // 尝试提取summary
-        const summaryMatch = cleanResponse.match(/"summary":\s*"([^"]+)"/);
-        const summary = summaryMatch ? summaryMatch[1] : `AI为您规划了${destination}的${travelers}人旅行`;
+        // 尝试修复常见的JSON语法错误
+        cleanResponse = cleanResponse
+          .replace(/,(\s*[}\]])/g, '$1') // 移除多余的逗号
+          .replace(/(\d+)\s*(\n\s*[}\]])/g, '$1$2') // 修复数字后缺少逗号的问题
+          .replace(/(\w+)\s*(\n\s*[}\]])/g, '"$1"$2'); // 修复未引用的字符串
         
-        // 尝试提取itinerary
-        const itineraryMatch = cleanResponse.match(/"itinerary":\s*\[(.*?)\]/s);
-        let itinerary = [];
+        const parsed = JSON.parse(cleanResponse);
+        console.log('✅ JSON解析成功');
+        return parsed;
+      } catch (parseError) {
+        console.log('❌ JSON解析失败:', parseError.message);
+        console.log('清理后的响应:', cleanResponse.substring(0, 500) + '...');
         
-        if (itineraryMatch) {
-          // 简单解析itinerary
-          const activitiesMatch = cleanResponse.match(/"activities":\s*\[(.*?)\]/s);
-          if (activitiesMatch) {
-            const activities = [];
-            const activityMatches = cleanResponse.match(/"title":\s*"([^"]+)"/g);
-            if (activityMatches) {
-              activityMatches.forEach((match, index) => {
-                const title = match.match(/"title":\s*"([^"]+)"/)[1];
-                activities.push({
-                  time: `${9 + index}:00`,
-                  title: title,
-                  description: `AI为您规划的${title}活动`,
-                  location: destination,
-                  cost: Math.floor(Math.random() * 200) + 50,
-                  category: 'AI推荐'
-                });
-              });
-            }
+        // 尝试提取基本信息
+        console.log('🔄 尝试提取基本信息...');
+        
+        try {
+          // 尝试提取summary
+          const summaryMatch = cleanResponse.match(/"summary":\s*"([^"]+)"/);
+          const summary = summaryMatch ? summaryMatch[1] : `AI为您规划了${destination}的${travelers}人旅行`;
+          
+          // 尝试提取itinerary
+          let itinerary = [];
+          
+          // 查找所有活动标题
+          const activityMatches = cleanResponse.match(/"title":\s*"([^"]+)"/g);
+          if (activityMatches && activityMatches.length > 0) {
+            const activities = activityMatches.map((match, index) => {
+              const title = match.match(/"title":\s*"([^"]+)"/)[1];
+              return {
+                time: `${9 + index}:00`,
+                title: title,
+                description: `AI为您规划的${title}活动`,
+                location: destination,
+                cost: Math.floor(Math.random() * 200) + 50,
+                category: 'AI推荐'
+              };
+            });
             
             itinerary = [{
               date: startDate,
               activities: activities
             }];
           }
-        }
-        
-        if (itinerary.length === 0) {
-          itinerary = [{
-            date: startDate,
-            activities: [{
-              time: '09:00',
-              title: 'AI规划的活动',
-              description: summary.substring(0, 200) + '...',
-              location: destination,
-              cost: 0,
-              category: 'AI推荐'
-            }]
-          }];
-        }
-        
-        parsedResponse = {
-          summary: summary,
-          itinerary: itinerary,
-          recommendations: {
-            restaurants: ['AI推荐餐厅'],
-            attractions: ['AI推荐景点'],
-            tips: ['AI实用贴士']
+          
+          if (itinerary.length === 0) {
+            itinerary = [{
+              date: startDate,
+              activities: [{
+                time: '09:00',
+                title: 'AI规划的活动',
+                description: summary.substring(0, 200) + '...',
+                location: destination,
+                cost: 0,
+                category: 'AI推荐'
+              }]
+            }];
           }
-        };
-        
-        console.log('✅ 基本信息提取成功');
-      } catch (extractError) {
-        console.log('❌ 基本信息提取失败:', extractError.message);
-        
-        // 最终降级
-        parsedResponse = {
-          summary: `AI为您规划了${destination}的${travelers}人旅行`,
-          itinerary: [{
-            date: startDate,
-            activities: [{
-              time: '09:00',
-              title: 'AI规划的活动',
-              description: aiResponse.substring(0, 200) + '...',
-              location: destination,
-              cost: 0,
-              category: 'AI推荐'
-            }]
-          }],
-          recommendations: {
-            restaurants: ['AI推荐餐厅'],
-            attractions: ['AI推荐景点'],
-            tips: ['AI实用贴士']
-          }
-        };
+          
+          const result = {
+            summary: summary,
+            itinerary: itinerary,
+            recommendations: {
+              restaurants: ['AI推荐餐厅'],
+              attractions: ['AI推荐景点'],
+              tips: ['AI实用贴士']
+            }
+          };
+          
+          console.log('✅ 基本信息提取成功');
+          return result;
+        } catch (extractError) {
+          console.log('❌ 基本信息提取失败:', extractError.message);
+          
+          // 最终降级
+          return {
+            summary: `AI为您规划了${destination}的${travelers}人旅行`,
+            itinerary: [{
+              date: startDate,
+              activities: [{
+                time: '09:00',
+                title: 'AI规划的活动',
+                description: aiResponse.substring(0, 200) + '...',
+                location: destination,
+                cost: 0,
+                category: 'AI推荐'
+              }]
+            }],
+            recommendations: {
+              restaurants: ['AI推荐餐厅'],
+              attractions: ['AI推荐景点'],
+              tips: ['AI实用贴士']
+            }
+          };
+        }
       }
     }
     
