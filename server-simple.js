@@ -464,9 +464,9 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
     
     console.log('API Key:', finalApiKey.substring(0, 10) + '...');
     
-    // 尝试调用OpenAI兼容的API
-    const response = await axios.post('https://api.openai.com/v1/chat/completions', {
-      model: "gpt-3.5-turbo",
+    // 尝试调用阿里云百炼API
+    const response = await axios.post('https://bailian.cn-beijing.aliyuncs.com/api/v1/chat/completions', {
+      model: "qwen-plus",
       messages: [
         {
           role: "system",
