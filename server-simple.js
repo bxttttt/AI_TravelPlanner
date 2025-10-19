@@ -489,7 +489,7 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
         'Authorization': `Bearer ${finalApiKey}`,
         'Content-Type': 'application/json'
       },
-      timeout: 30000
+      timeout: 60000
     });
     
     console.log('API调用成功！');
@@ -527,10 +527,16 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('API调用错误:', error.message);
+    console.error('❌ API调用错误:', error.message);
+    
+    if (error.code === 'ECONNABORTED') {
+      console.log('⏰ API调用超时，请检查网络连接');
+    } else if (error.response) {
+      console.log('📊 HTTP错误:', error.response.status, error.response.data);
+    }
     
     // 如果API调用失败，使用智能降级
-    console.log('API调用失败，使用智能降级模式...');
+    console.log('🔄 API调用失败，使用智能降级模式...');
     
     // 如果API调用失败，返回增强的演示数据
     const fallbackResponse = {
