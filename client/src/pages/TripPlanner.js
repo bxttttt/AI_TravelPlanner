@@ -94,6 +94,42 @@ const TripPlanner = () => {
         // 如果AI返回了行程数据，添加到旅行计划中
         if (response.data.data.itinerary && Array.isArray(response.data.data.itinerary)) {
           tripData.itinerary = response.data.data.itinerary;
+          
+          // 计算每日预算分配
+          const totalBudget = parseInt(formData.budget);
+          const daysCount = response.data.data.itinerary.length;
+          const dailyBudget = Math.round(totalBudget / daysCount);
+          
+          // 为每个行程日添加预算信息
+          tripData.itinerary = response.data.data.itinerary.map((day, index) => {
+            const dayBudget = day.dailyBudget || dailyBudget;
+            const dayExpenses = day.activities ? 
+              day.activities.reduce((sum, activity) => sum + (activity.cost || 0), 0) : 0;
+            
+            return {
+              ...day,
+              dailyBudget: dayBudget,
+              estimatedCost: dayExpenses,
+              remainingBudget: dayBudget - dayExpenses,
+              budgetStatus: dayExpenses <= dayBudget ? 'within' : 'over'
+            };
+          });
+          
+          // 添加预算摘要
+          tripData.budgetSummary = {
+            totalBudget: totalBudget,
+            dailyBudget: dailyBudget,
+            estimatedTotalCost: response.data.data.itinerary.reduce((sum, day) => 
+              sum + (day.activities ? day.activities.reduce((daySum, activity) => 
+                daySum + (activity.cost || 0), 0) : 0), 0),
+            budgetAllocation: {
+              accommodation: Math.round(totalBudget * 0.35),
+              meals: Math.round(totalBudget * 0.25),
+              transportation: Math.round(totalBudget * 0.20),
+              attractions: Math.round(totalBudget * 0.15),
+              others: Math.round(totalBudget * 0.05)
+            }
+          };
         }
 
         const tripResponse = await axios.post('/api/trips', tripData);

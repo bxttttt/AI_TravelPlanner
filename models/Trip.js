@@ -1,21 +1,57 @@
 const mongoose = require('mongoose');
 
 const dayPlanSchema = new mongoose.Schema({
+  day: {
+    type: Number,
+    required: true
+  },
   date: {
     type: Date,
     required: true
+  },
+  title: {
+    type: String,
+    required: true
+  },
+  dailyBudget: {
+    type: Number,
+    required: true
+  },
+  estimatedCost: {
+    type: Number,
+    default: 0
+  },
+  remainingBudget: {
+    type: Number,
+    default: 0
+  },
+  budgetStatus: {
+    type: String,
+    enum: ['within', 'over'],
+    default: 'within'
   },
   activities: [{
     time: String,
     title: String,
     description: String,
     location: String,
-    cost: Number,
+    cost: {
+      type: Number,
+      default: 0
+    },
     category: {
       type: String,
       enum: ['景点', '餐厅', '交通', '住宿', '购物', '其他']
     }
-  }]
+  }],
+  meals: {
+    breakfast: String,
+    lunch: String,
+    dinner: String
+  },
+  accommodation: String,
+  transportation: String,
+  tips: String
 });
 
 const expenseSchema = new mongoose.Schema({
@@ -80,6 +116,18 @@ const tripSchema = new mongoose.Schema({
   aiGenerated: {
     type: Boolean,
     default: false
+  },
+  budgetSummary: {
+    totalBudget: Number,
+    dailyBudget: Number,
+    estimatedTotalCost: Number,
+    budgetAllocation: {
+      accommodation: Number,
+      meals: Number,
+      transportation: Number,
+      attractions: Number,
+      others: Number
+    }
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,

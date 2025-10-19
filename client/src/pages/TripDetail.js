@@ -173,23 +173,79 @@ const TripDetail = () => {
             </div>
           </div>
 
-          {/* 每日预算建议 */}
+          {/* 预算分配分析 */}
+          {trip.budgetSummary && (
+            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">预算分配分析</h3>
+              <div className="grid md:grid-cols-2 gap-4 mb-4">
+                <div className="bg-white p-4 rounded-lg border">
+                  <h4 className="font-medium text-gray-900 mb-2">总预算概览</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">总预算:</span>
+                      <span className="font-medium">¥{trip.budgetSummary.totalBudget.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">预计总花费:</span>
+                      <span className="font-medium text-blue-600">¥{trip.budgetSummary.estimatedTotalCost.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">剩余预算:</span>
+                      <span className={`font-medium ${trip.budgetSummary.totalBudget - trip.budgetSummary.estimatedTotalCost >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        ¥{(trip.budgetSummary.totalBudget - trip.budgetSummary.estimatedTotalCost).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white p-4 rounded-lg border">
+                  <h4 className="font-medium text-gray-900 mb-2">预算分配建议</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">住宿 (35%):</span>
+                      <span className="font-medium">¥{trip.budgetSummary.budgetAllocation.accommodation.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">餐饮 (25%):</span>
+                      <span className="font-medium">¥{trip.budgetSummary.budgetAllocation.meals.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">交通 (20%):</span>
+                      <span className="font-medium">¥{trip.budgetSummary.budgetAllocation.transportation.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">景点 (15%):</span>
+                      <span className="font-medium">¥{trip.budgetSummary.budgetAllocation.attractions.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">其他 (5%):</span>
+                      <span className="font-medium">¥{trip.budgetSummary.budgetAllocation.others.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 每日预算详情 */}
           {trip.itinerary && trip.itinerary.length > 0 && (
             <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">每日预算建议</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">每日预算详情</h3>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {trip.itinerary.map((day, index) => {
-                  const dailyBudget = Math.round(trip.budget / trip.itinerary.length);
-                  const dailyExpenses = day.activities?.reduce((sum, act) => sum + (act.cost || 0), 0) || 0;
+                  const dailyBudget = day.dailyBudget || Math.round(trip.budget / trip.itinerary.length);
+                  const dailyExpenses = day.estimatedCost || (day.activities?.reduce((sum, act) => sum + (act.cost || 0), 0) || 0);
+                  const remaining = dailyBudget - dailyExpenses;
+                  const budgetStatus = remaining >= 0 ? 'within' : 'over';
+                  
                   return (
-                    <div key={index} className="bg-white p-3 rounded-lg border">
-                      <div className="flex justify-between items-center mb-2">
+                    <div key={index} className={`bg-white p-4 rounded-lg border ${budgetStatus === 'over' ? 'border-red-200 bg-red-50' : 'border-green-200'}`}>
+                      <div className="flex justify-between items-center mb-3">
                         <span className="font-medium text-gray-900">第{index + 1}天</span>
                         <span className="text-sm text-gray-500">{formatDate(day.date)}</span>
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-2">
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">建议预算:</span>
+                          <span className="text-gray-600">每日预算:</span>
                           <span className="font-medium">¥{dailyBudget}</span>
                         </div>
                         <div className="flex justify-between text-sm">
@@ -197,11 +253,22 @@ const TripDetail = () => {
                           <span className="font-medium text-blue-600">¥{dailyExpenses}</span>
                         </div>
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">剩余:</span>
-                          <span className={`font-medium ${dailyBudget - dailyExpenses >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            ¥{dailyBudget - dailyExpenses}
+                          <span className="text-gray-600">剩余预算:</span>
+                          <span className={`font-medium ${remaining >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            ¥{remaining}
                           </span>
                         </div>
+                        {day.activities && day.activities.length > 0 && (
+                          <div className="mt-2 pt-2 border-t border-gray-200">
+                            <p className="text-xs text-gray-500 mb-1">活动预算分布:</p>
+                            {day.activities.map((activity, actIndex) => (
+                              <div key={actIndex} className="flex justify-between text-xs">
+                                <span className="text-gray-500 truncate">{activity.title}</span>
+                                <span className="text-gray-600">¥{activity.cost || 0}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -252,10 +319,70 @@ const TripDetail = () => {
                             {activity.time && (
                               <p className="text-xs text-blue-600 mt-1">🕐 {activity.time}</p>
                             )}
+                            {activity.category && (
+                              <span className="inline-block mt-1 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
+                                {activity.category}
+                              </span>
+                            )}
                           </div>
                         </div>
                       ))}
                     </div>
+                    
+                    {/* 餐饮建议 */}
+                    {day.meals && (day.meals.breakfast || day.meals.lunch || day.meals.dinner) && (
+                      <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
+                        <h4 className="font-medium text-gray-900 mb-2 flex items-center">
+                          <Utensils className="h-4 w-4 mr-2" />
+                          餐饮建议
+                        </h4>
+                        <div className="space-y-1 text-sm">
+                          {day.meals.breakfast && (
+                            <p><span className="font-medium">早餐:</span> {day.meals.breakfast}</p>
+                          )}
+                          {day.meals.lunch && (
+                            <p><span className="font-medium">午餐:</span> {day.meals.lunch}</p>
+                          )}
+                          {day.meals.dinner && (
+                            <p><span className="font-medium">晚餐:</span> {day.meals.dinner}</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* 住宿和交通建议 */}
+                    {(day.accommodation || day.transportation) && (
+                      <div className="mt-4 space-y-2">
+                        {day.accommodation && (
+                          <div className="p-3 bg-green-50 rounded-lg">
+                            <h4 className="font-medium text-gray-900 mb-1 flex items-center">
+                              <Home className="h-4 w-4 mr-2" />
+                              住宿建议
+                            </h4>
+                            <p className="text-sm text-gray-600">{day.accommodation}</p>
+                          </div>
+                        )}
+                        {day.transportation && (
+                          <div className="p-3 bg-blue-50 rounded-lg">
+                            <h4 className="font-medium text-gray-900 mb-1 flex items-center">
+                              <Car className="h-4 w-4 mr-2" />
+                              交通建议
+                            </h4>
+                            <p className="text-sm text-gray-600">{day.transportation}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* 当日贴士 */}
+                    {day.tips && (
+                      <div className="mt-4 p-3 bg-purple-50 rounded-lg">
+                        <h4 className="font-medium text-gray-900 mb-1 flex items-center">
+                          💡 当日贴士
+                        </h4>
+                        <p className="text-sm text-gray-600">{day.tips}</p>
+                      </div>
+                    )}
                     {/* 每日预算统计 */}
                     {day.activities && day.activities.some(act => act.cost) && (
                       <div className="mt-3 p-2 bg-blue-50 rounded-lg">

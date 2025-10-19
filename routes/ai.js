@@ -40,27 +40,82 @@ router.post('/generate-trip', auth, async (req, res) => {
 出发日期：${startDate}
 返回日期：${endDate}
 旅行天数：${daysDiff}天
-预算：${budget}元
+总预算：${budget}元
 同行人数：${travelers}人
 旅行偏好：${preferences}
 ${voiceInput ? `语音输入内容：${voiceInput}` : ''}
 
-请生成包含以下内容的详细旅行计划：
-1. 每日行程安排（时间、地点、活动、费用估算）
-2. 推荐住宿（考虑预算和位置）
-3. 交通建议
-4. 必游景点和推荐餐厅
-5. 预算分配建议
+请严格按照以下JSON格式返回，确保数据结构完整：
+
+{
+  "summary": {
+    "destination": "${destination}",
+    "totalDays": ${daysDiff},
+    "totalBudget": ${budget},
+    "dailyBudget": ${Math.round(budget / daysDiff)},
+    "travelers": ${travelers}
+  },
+  "itinerary": [
+    {
+      "day": 1,
+      "date": "${startDate}",
+      "title": "第1天 - 抵达与初探",
+      "dailyBudget": ${Math.round(budget / daysDiff)},
+      "activities": [
+        {
+          "time": "09:00-10:00",
+          "title": "活动名称",
+          "description": "详细描述",
+          "location": "具体地址",
+          "cost": 100,
+          "category": "景点"
+        }
+      ],
+      "meals": {
+        "breakfast": "早餐建议",
+        "lunch": "午餐建议", 
+        "dinner": "晚餐建议"
+      },
+      "accommodation": "住宿建议",
+      "transportation": "交通建议",
+      "tips": "当日实用贴士"
+    }
+  ],
+  "recommendations": {
+    "restaurants": [
+      {
+        "name": "餐厅名称",
+        "specialty": "特色菜",
+        "priceRange": "价格范围",
+        "location": "地址"
+      }
+    ],
+    "attractions": [
+      {
+        "name": "景点名称",
+        "description": "景点描述",
+        "bestTime": "最佳游览时间",
+        "ticketPrice": "门票价格"
+      }
+    ],
+    "tips": {
+      "cultural": "文化注意事项",
+      "transportation": "交通建议",
+      "safety": "安全提醒",
+      "weather": "天气建议"
+    }
+  }
+}
 
 重要要求：
-- 必须为每一天生成详细的行程安排
-- 每日活动数量控制在3-5个，避免过于紧凑
-- 合理安排休息时间
-- 考虑交通时间和景点开放时间
-- 预算分配要合理，避免超支
-
-请以JSON格式返回，包含itinerary数组，每个元素包含date、activities等字段。
-itinerary数组应该包含${daysDiff}天的详细安排。
+1. 必须返回完整的JSON格式，不要包含任何其他文字
+2. 每日活动控制在2-4个主要活动，避免过于紧凑
+3. 每日预算要合理分配，总预算不超过${budget}元
+4. 活动时间要合理，考虑交通时间和景点开放时间
+5. 包含餐饮、住宿、交通建议
+6. 为每一天生成${daysDiff}天的完整行程
+7. 每个活动必须包含cost字段（费用估算）
+8. 活动类别必须是：景点、餐厅、交通、住宿、购物、其他
 `;
 
     const completion = await openai.chat.completions.create({
@@ -68,40 +123,74 @@ itinerary数组应该包含${daysDiff}天的详细安排。
       messages: [
         {
           role: "system",
-          content: `你是一个专业的旅行规划师，擅长制定合理、舒适的旅行计划。请遵循以下原则：
+          content: `你是一个专业的旅行规划师，擅长制定合理、舒适的旅行计划。请严格遵循以下原则：
 
-1. 行程安排要合理，每天不超过4-5个主要活动
-2. 活动之间要预留充足的交通时间
+1. 必须返回完整的JSON格式，不要包含任何其他文字或解释
+2. 每日活动控制在2-4个主要活动，避免过于紧凑
 3. 预算分配要科学：住宿30-40%，餐饮25-30%，交通15-20%，景点门票10-15%，其他5-10%
-4. 考虑旅行者的体力和兴趣，安排适当的休息时间
-5. 根据季节和天气调整活动安排
-6. 提供实用的交通和住宿建议
+4. 活动时间要合理，考虑交通时间和景点开放时间
+5. 每个活动必须包含cost字段（费用估算）
+6. 活动类别必须是：景点、餐厅、交通、住宿、购物、其他
+7. 为每一天生成完整的行程安排，包含餐饮、住宿、交通建议
+8. 确保JSON格式正确，可以被直接解析
 
-请以JSON格式返回结构化的旅行计划，确保数据格式正确。`
+请严格按照用户提供的JSON模板格式返回数据。`
         },
         {
           role: "user",
           content: prompt
         }
       ],
-      max_tokens: 3000,
-      temperature: 0.6
+      max_tokens: 4000,
+      temperature: 0.5
     });
 
     const aiResponse = completion.choices[0].message.content;
     
+    // 清理AI返回的文本，提取JSON部分
+    let jsonText = aiResponse;
+    
+    // 尝试提取JSON部分（去除可能的markdown格式）
+    const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      jsonText = jsonMatch[0];
+    }
+    
     // 尝试解析AI返回的JSON
     let parsedResponse;
     try {
-      parsedResponse = JSON.parse(aiResponse);
+      parsedResponse = JSON.parse(jsonText);
+      
+      // 验证必要字段
+      if (!parsedResponse.itinerary || !Array.isArray(parsedResponse.itinerary)) {
+        throw new Error('AI返回数据格式不正确：缺少itinerary数组');
+      }
+      
+      // 确保每个行程日都有必要的字段
+      parsedResponse.itinerary = parsedResponse.itinerary.map((day, index) => {
+        if (!day.activities) day.activities = [];
+        if (!day.meals) day.meals = {};
+        if (!day.dailyBudget) day.dailyBudget = Math.round(budget / daysDiff);
+        if (!day.day) day.day = index + 1;
+        return day;
+      });
+      
     } catch (parseError) {
-      // 如果解析失败，返回原始文本
-      parsedResponse = { rawResponse: aiResponse };
+      console.error('AI返回数据解析失败:', parseError);
+      console.error('原始AI响应:', aiResponse);
+      
+      // 如果解析失败，返回错误信息
+      return res.status(500).json({ 
+        message: 'AI返回数据格式不正确，请重试',
+        error: parseError.message,
+        rawResponse: aiResponse
+      });
     }
 
     res.json({
       message: 'AI旅行计划生成成功',
-      data: parsedResponse
+      data: parsedResponse,
+      success: true
     });
 
   } catch (error) {
