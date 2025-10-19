@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI旅行规划师</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- 导航栏 -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <button id="homeBtn" class="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors">🗺️ AI旅行规划师</button>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="loginBtn" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
+                        登录
+                    </button>
+                    <button id="registerBtn" class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700">
+                        注册
+                    </button>
+                    <button id="logoutBtn" class="hidden text-gray-700 hover:text-red-600 px-3 py-2 rounded-md text-sm font-medium">
+                        退出
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区域 -->
+    <div id="mainContent">
+        <!-- 首页 -->
+        <div id="homePage" class="min-h-screen">
+            <!-- Hero Section -->
+            <section class="gradient-bg text-white py-20">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                    <h1 class="text-4xl md:text-6xl font-bold mb-6">AI旅行规划师</h1>
+                    <p class="text-xl md:text-2xl mb-8 text-blue-100">智能语音规划，让旅行更简单</p>
+                    <button id="startPlanningBtn" class="bg-white text-blue-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-colors">
+                        开始规划
+                    </button>
+                </div>
+            </section>
+
+            <!-- 功能特性 -->
+            <section class="py-20 bg-white">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="text-center mb-16">
+                        <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">核心功能</h2>
+                        <p class="text-xl text-gray-600">让AI成为您的专属旅行顾问</p>
+                    </div>
+                    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                        <div class="text-center">
+                            <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <span class="text-2xl">🎤</span>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-900 mb-2">语音输入</h3>
+                            <p class="text-gray-600">支持语音输入旅行需求，AI智能理解并生成个性化行程</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <span class="text-2xl">🧠</span>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-900 mb-2">智能规划</h3>
+                            <p class="text-gray-600">AI分析您的偏好，自动生成详细的旅行路线和建议</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <span class="text-2xl">💰</span>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-900 mb-2">费用管理</h3>
+                            <p class="text-gray-600">智能预算分析，实时记录旅行开销，让您轻松掌控预算</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <span class="text-2xl">☁️</span>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-900 mb-2">云端同步</h3>
+                            <p class="text-gray-600">多设备同步，随时随地查看和修改您的旅行计划</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- 登录页面 -->
+        <div id="loginPage" class="hidden min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+            <div class="max-w-md w-full space-y-8">
+                <div class="text-center">
+                    <button id="backToHomeFromLogin" class="text-blue-600 hover:text-blue-700 mb-4 flex items-center space-x-2">
+                        <span>←</span>
+                        <span>返回主页</span>
+                    </button>
+                    <h2 class="text-3xl font-extrabold text-gray-900">登录您的账户</h2>
+                </div>
+                <form id="loginForm" class="mt-8 space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">邮箱地址</label>
+                        <input id="loginEmail" type="email" required class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="请输入邮箱地址">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">密码</label>
+                        <input id="loginPassword" type="password" required class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="请输入密码">
+                    </div>
+                    <div>
+                        <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            登录
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 注册页面 -->
+        <div id="registerPage" class="hidden min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+            <div class="max-w-md w-full space-y-8">
+                <div class="text-center">
+                    <button id="backToHomeFromRegister" class="text-blue-600 hover:text-blue-700 mb-4 flex items-center space-x-2">
+                        <span>←</span>
+                        <span>返回主页</span>
+                    </button>
+                    <h2 class="text-3xl font-extrabold text-gray-900">创建新账户</h2>
+                </div>
+                <form id="registerForm" class="mt-8 space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">用户名</label>
+                        <input id="registerUsername" type="text" required class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="请输入用户名">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">邮箱地址</label>
+                        <input id="registerEmail" type="email" required class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="请输入邮箱地址">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">密码</label>
+                        <input id="registerPassword" type="password" required class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="请输入密码（至少6位）">
+                    </div>
+                    <div>
+                        <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            注册
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 行程规划页面 -->
+        <div id="plannerPage" class="hidden min-h-screen bg-gray-50 py-8">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-8">
+                    <button id="backToHomeFromPlanner" class="text-blue-600 hover:text-blue-700 mb-4 flex items-center space-x-2 mx-auto">
+                        <span>←</span>
+                        <span>返回主页</span>
+                    </button>
+                    <h1 class="text-3xl font-bold text-gray-900 mb-4">AI智能旅行规划</h1>
+                    <p class="text-lg text-gray-600">告诉AI您的旅行需求，让AI为您规划完美的旅行</p>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-lg p-8">
+                    <form id="tripForm" class="space-y-6">
+                        <!-- 语音输入区域 -->
+                        <div class="border-2 border-dashed border-blue-300 rounded-lg p-6 text-center">
+                            <div class="flex items-center justify-center mb-4">
+                                <span class="text-2xl mr-2">🎤</span>
+                                <h3 class="text-lg font-semibold text-gray-900">语音输入</h3>
+                            </div>
+                            <button type="button" id="voiceBtn" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 mx-auto">
+                                <span>🎤</span>
+                                <span>开始语音输入</span>
+                            </button>
+                            <div id="voiceResult" class="mt-4 p-4 bg-blue-50 rounded-lg hidden">
+                                <p class="text-sm text-blue-800">
+                                    <strong>语音识别结果：</strong> <span id="voiceText"></span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- 基本信息表单 -->
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">🗺️ 目的地 *</label>
+                                <input type="text" id="destination" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="请输入目的地，如：日本东京">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">👥 同行人数</label>
+                                <input type="number" id="travelers" value="1" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">📅 出发日期 *</label>
+                                <input type="date" id="startDate" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">📅 返回日期 *</label>
+                                <input type="date" id="endDate" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">💰 预算 (元) *</label>
+                                <input type="number" id="budget" min="0" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="请输入预算金额">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">旅行偏好</label>
+                            <textarea id="preferences" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="请描述您的旅行偏好，如：喜欢美食、文化景点、购物等"></textarea>
+                        </div>
+
+                        <div class="flex justify-center">
+                            <button type="submit" id="generateBtn" class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 flex items-center space-x-2">
+                                <span>🧠</span>
+                                <span>生成AI旅行计划</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- 结果页面 -->
+        <div id="resultPage" class="hidden min-h-screen bg-gray-50 py-8">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-6">
+                    <button id="backToHomeFromResult" class="text-blue-600 hover:text-blue-700 mb-4 flex items-center space-x-2 mx-auto">
+                        <span>←</span>
+                        <span>返回主页</span>
+                    </button>
+                    <button id="createNewTrip" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 flex items-center space-x-2 mx-auto">
+                        <span>➕</span>
+                        <span>创建新行程</span>
+                    </button>
+                </div>
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <h1 class="text-3xl font-bold text-gray-900 mb-4">您的AI旅行计划</h1>
+                    <div id="tripResult" class="space-y-4">
+                        <!-- 结果将在这里显示 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 通知区域 -->
+    <div id="notification" class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg hidden">
+        <span id="notificationText"></span>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentUser = null;
+        let isRecording = false;
+
+        // 页面切换函数
+        function showPage(pageId) {
+            document.querySelectorAll('[id$="Page"]').forEach(page => {
+                page.classList.add('hidden');
+            });
+            document.getElementById(pageId).classList.remove('hidden');
+        }
+
+        // 显示通知
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            const notificationText = document.getElementById('notificationText');
+            notificationText.textContent = message;
+            notification.className = `fixed top-4 right-4 text-white px-6 py-3 rounded-lg shadow-lg ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+            notification.classList.remove('hidden');
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 3000);
+        }
+
+        // 事件监听器
+        document.getElementById('homeBtn').addEventListener('click', () => showPage('homePage'));
+        document.getElementById('loginBtn').addEventListener('click', () => showPage('loginPage'));
+        document.getElementById('registerBtn').addEventListener('click', () => showPage('registerPage'));
+        document.getElementById('startPlanningBtn').addEventListener('click', () => showPage('plannerPage'));
+        
+        // 返回主页按钮
+        document.getElementById('backToHomeFromLogin').addEventListener('click', () => showPage('homePage'));
+        document.getElementById('backToHomeFromRegister').addEventListener('click', () => showPage('homePage'));
+        document.getElementById('backToHomeFromPlanner').addEventListener('click', () => showPage('homePage'));
+        document.getElementById('backToHomeFromResult').addEventListener('click', () => showPage('homePage'));
+        
+        // 创建新行程按钮
+        document.getElementById('createNewTrip').addEventListener('click', () => showPage('plannerPage'));
+        
+        // 退出登录
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            currentUser = null;
+            updateNavbarForGuest();
+            showPage('homePage');
+            showNotification('已退出登录');
+        });
+
+        // 登录表单
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await response.json();
+                
+                if (data.token) {
+                    currentUser = data.user;
+                    localStorage.setItem('token', data.token);
+                    showNotification('登录成功！');
+                    updateNavbarForLoggedInUser();
+                    showPage('plannerPage');
+                } else {
+                    showNotification(data.message || '登录失败', 'error');
+                }
+            } catch (error) {
+                showNotification('登录失败，请重试', 'error');
+            }
+        });
+
+        // 注册表单
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('registerUsername').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password })
+                });
+                const data = await response.json();
+                
+                if (data.token) {
+                    currentUser = data.user;
+                    localStorage.setItem('token', data.token);
+                    showNotification('注册成功！');
+                    updateNavbarForLoggedInUser();
+                    showPage('plannerPage');
+                } else {
+                    showNotification(data.message || '注册失败', 'error');
+                }
+            } catch (error) {
+                showNotification('注册失败，请重试', 'error');
+            }
+        });
+
+        // 语音输入
+        document.getElementById('voiceBtn').addEventListener('click', () => {
+            if (!isRecording) {
+                startVoiceRecording();
+            } else {
+                stopVoiceRecording();
+            }
+        });
+
+        function startVoiceRecording() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                const recognition = new SpeechRecognition();
+                
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'zh-CN';
+                
+                recognition.onstart = () => {
+                    isRecording = true;
+                    document.getElementById('voiceBtn').innerHTML = '<span>⏹️</span><span>停止录音</span>';
+                    document.getElementById('voiceBtn').className = 'bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2 mx-auto';
+                };
+                
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    document.getElementById('voiceText').textContent = transcript;
+                    document.getElementById('voiceResult').classList.remove('hidden');
+                    
+                    // 尝试从语音输入中提取信息
+                    const destinationMatch = transcript.match(/去(.+?)(?:，|$)/);
+                    const budgetMatch = transcript.match(/(\d+)(?:元|万|千)/);
+                    const daysMatch = transcript.match(/(\d+)(?:天|日)/);
+                    
+                    if (destinationMatch) {
+                        document.getElementById('destination').value = destinationMatch[1];
+                    }
+                    if (budgetMatch) {
+                        document.getElementById('budget').value = budgetMatch[1];
+                    }
+                    if (daysMatch) {
+                        const days = parseInt(daysMatch[1]);
+                        const startDate = new Date();
+                        const endDate = new Date();
+                        endDate.setDate(startDate.getDate() + days);
+                        document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+                        document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+                    }
+                    
+                    document.getElementById('preferences').value = transcript;
+                };
+                
+                recognition.onend = () => {
+                    isRecording = false;
+                    document.getElementById('voiceBtn').innerHTML = '<span>🎤</span><span>开始语音输入</span>';
+                    document.getElementById('voiceBtn').className = 'bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 mx-auto';
+                };
+                
+                recognition.onerror = (event) => {
+                    showNotification('语音识别失败，请重试', 'error');
+                    isRecording = false;
+                    document.getElementById('voiceBtn').innerHTML = '<span>🎤</span><span>开始语音输入</span>';
+                    document.getElementById('voiceBtn').className = 'bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 mx-auto';
+                };
+                
+                recognition.start();
+            } else {
+                showNotification('您的浏览器不支持语音识别功能', 'error');
+            }
+        }
+
+        function stopVoiceRecording() {
+            // 语音识别会自动停止
+        }
+
+        // 行程规划表单
+        document.getElementById('tripForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                destination: document.getElementById('destination').value,
+                startDate: document.getElementById('startDate').value,
+                endDate: document.getElementById('endDate').value,
+                budget: document.getElementById('budget').value,
+                travelers: document.getElementById('travelers').value,
+                preferences: document.getElementById('preferences').value
+            };
+            
+            if (!formData.destination || !formData.startDate || !formData.endDate || !formData.budget) {
+                showNotification('请填写所有必填字段', 'error');
+                return;
+            }
+            
+            document.getElementById('generateBtn').innerHTML = '<span>⏳</span><span>AI正在规划中...</span>';
+            document.getElementById('generateBtn').disabled = true;
+            
+            try {
+                const response = await fetch('/api/ai/generate-trip', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify(formData)
+                });
+                const data = await response.json();
+                
+                if (data.data) {
+                    // 创建旅行计划
+                    const tripResponse = await fetch('/api/trips', {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify({
+                            title: `${formData.destination} ${formData.startDate} 旅行`,
+                            destination: formData.destination,
+                            startDate: formData.startDate,
+                            endDate: formData.endDate,
+                            budget: parseInt(formData.budget),
+                            travelers: parseInt(formData.travelers),
+                            preferences: {
+                                interests: formData.preferences.split(',').map(s => s.trim()),
+                                specialRequirements: document.getElementById('voiceText').textContent || ''
+                            },
+                            aiGenerated: true
+                        })
+                    });
+                    
+                    const tripData = await tripResponse.json();
+                    displayTripResult(tripData.trip, data.data);
+                    showNotification('AI旅行计划生成成功！');
+                } else {
+                    showNotification('生成旅行计划失败，请重试', 'error');
+                }
+            } catch (error) {
+                showNotification('生成旅行计划失败，请重试', 'error');
+            } finally {
+                document.getElementById('generateBtn').innerHTML = '<span>🧠</span><span>生成AI旅行计划</span>';
+                document.getElementById('generateBtn').disabled = false;
+            }
+        });
+
+        function displayTripResult(trip, aiData) {
+            const resultDiv = document.getElementById('tripResult');
+            resultDiv.innerHTML = `
+                <div class="bg-blue-50 p-6 rounded-lg mb-6">
+                    <h2 class="text-2xl font-bold text-blue-900 mb-4">${trip.title}</h2>
+                    <div class="grid md:grid-cols-3 gap-4 mb-4">
+                        <div class="bg-white p-4 rounded-lg">
+                            <div class="text-sm font-medium text-blue-800">总预算</div>
+                            <div class="text-2xl font-bold text-blue-900">¥${trip.budget.toLocaleString()}</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg">
+                            <div class="text-sm font-medium text-green-800">目的地</div>
+                            <div class="text-2xl font-bold text-green-900">${trip.destination}</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg">
+                            <div class="text-sm font-medium text-purple-800">同行人数</div>
+                            <div class="text-2xl font-bold text-purple-900">${trip.travelers}人</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white p-6 rounded-lg">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">AI生成的行程安排</h3>
+                    <div class="space-y-4">
+                        ${aiData.itinerary ? aiData.itinerary.map(day => `
+                            <div class="border-l-4 border-blue-500 pl-4">
+                                <h4 class="font-semibold text-gray-900">${new Date(day.date).toLocaleDateString('zh-CN')}</h4>
+                                <div class="mt-2 space-y-2">
+                                    ${day.activities ? day.activities.map(activity => `
+                                        <div class="flex items-start space-x-3">
+                                            <span class="text-gray-400">🕐</span>
+                                            <div class="flex-1">
+                                                <p class="font-medium text-gray-900">${activity.title}</p>
+                                                <p class="text-sm text-gray-600">${activity.description}</p>
+                                                ${activity.cost ? `<p class="text-sm text-green-600">¥${activity.cost}</p>` : ''}
+                                            </div>
+                                        </div>
+                                    `).join('') : ''}
+                                </div>
+                            </div>
+                        `).join('') : '<p class="text-gray-500">暂无行程安排</p>'}
+                    </div>
+                </div>
+            `;
+            showPage('resultPage');
+        }
+
+        // 更新导航栏状态
+        function updateNavbarForLoggedInUser() {
+            document.getElementById('loginBtn').classList.add('hidden');
+            document.getElementById('registerBtn').classList.add('hidden');
+            document.getElementById('logoutBtn').classList.remove('hidden');
+        }
+
+        function updateNavbarForGuest() {
+            document.getElementById('loginBtn').classList.remove('hidden');
+            document.getElementById('registerBtn').classList.remove('hidden');
+            document.getElementById('logoutBtn').classList.add('hidden');
+        }
+
+        // 检查是否已登录
+        window.addEventListener('load', () => {
+            const token = localStorage.getItem('token');
+            if (token) {
+                // 可以在这里验证token并自动登录
+                updateNavbarForLoggedInUser();
+                showPage('plannerPage');
+            } else {
+                updateNavbarForGuest();
+                showPage('homePage');
+            }
+        });
+    </script>
+</body>
+</html>
