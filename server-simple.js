@@ -413,14 +413,7 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
   }
   
   try {
-    // 使用阿里云百炼API
-    const client = new Bailian({
-      accessKeyId: 'LTAI5tQZ8QZ8QZ8QZ8QZ8QZ8', // 请替换为您的AccessKey ID
-      accessKeySecret: 'your-access-key-secret', // 请替换为您的AccessKey Secret
-      endpoint: 'https://bailian.cn-beijing.aliyuncs.com'
-    });
-    
-    console.log('正在调用阿里云百炼API...');
+    console.log('正在调用真实API...');
     
     // 构建详细的提示词
     const prompt = `作为专业的旅行规划师，请为以下需求制定详细的旅行计划：
@@ -466,11 +459,14 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
   }
 }`;
 
-    // 使用HTTP请求直接调用阿里云百炼API
+    // 使用HTTP请求调用API
     const axios = require('axios');
     
-    const response = await axios.post('https://bailian.cn-beijing.aliyuncs.com/api/v1/chat/completions', {
-      model: "qwen-plus",
+    console.log('API Key:', finalApiKey.substring(0, 10) + '...');
+    
+    // 尝试调用OpenAI兼容的API
+    const response = await axios.post('https://api.openai.com/v1/chat/completions', {
+      model: "gpt-3.5-turbo",
       messages: [
         {
           role: "system",
@@ -491,6 +487,7 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
       timeout: 30000
     });
     
+    console.log('API调用成功！');
     const aiResponse = response.data.choices[0].message.content;
     
     // 尝试解析AI返回的JSON
@@ -525,7 +522,10 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('阿里云百炼API错误:', error);
+    console.error('API调用错误:', error.message);
+    
+    // 如果API调用失败，使用智能降级
+    console.log('API调用失败，使用智能降级模式...');
     
     // 如果API调用失败，返回增强的演示数据
     const fallbackResponse = {
