@@ -99,13 +99,21 @@ app.get('/api/auth/me', auth, (req, res) => {
 
 app.put('/api/auth/settings', auth, (req, res) => {
   const { preferences } = req.body;
+  
+  // 在演示模式下，我们只是返回成功
+  // 在实际应用中，这里会更新数据库中的用户设置
   res.json({
+    success: true,
     message: '设置更新成功',
     user: {
       id: 'demo-user',
       username: '演示用户',
       email: 'demo@example.com',
-      preferences
+      preferences: {
+        openaiApiKey: preferences.openaiApiKey || '',
+        language: preferences.language || 'zh-CN',
+        currency: preferences.currency || 'CNY'
+      }
     }
   });
 });
@@ -188,9 +196,19 @@ app.delete('/api/trips/:id/expenses/:expenseId', auth, (req, res) => {
 
 // AI路由
 app.post('/api/ai/generate-trip', auth, (req, res) => {
-  // 模拟AI响应
   const { destination, startDate, endDate, budget, travelers, preferences } = req.body;
   
+  // 检查是否有API Key配置
+  const userApiKey = req.headers['x-api-key'] || req.body.apiKey;
+  
+  if (!userApiKey) {
+    return res.status(400).json({ 
+      message: '请先在设置中配置OpenAI API Key',
+      needApiKey: true
+    });
+  }
+  
+  // 模拟AI响应（在实际应用中，这里会调用OpenAI API）
   const mockResponse = {
     message: 'AI旅行计划生成成功',
     data: {
@@ -214,6 +232,22 @@ app.post('/api/ai/generate-trip', auth, (req, res) => {
               description: '品尝当地特色美食',
               location: '市中心餐厅',
               cost: 200,
+              category: '餐饮'
+            },
+            {
+              time: '14:00',
+              title: '城市观光',
+              description: '游览当地著名景点',
+              location: '市中心',
+              cost: 150,
+              category: '景点'
+            },
+            {
+              time: '18:00',
+              title: '晚餐',
+              description: '享受当地特色晚餐',
+              location: '特色餐厅',
+              cost: 300,
               category: '餐饮'
             }
           ]

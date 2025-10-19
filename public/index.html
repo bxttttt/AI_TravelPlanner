@@ -31,6 +31,9 @@
                     <button id="registerBtn" class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700">
                         注册
                     </button>
+                    <button id="settingsBtn" class="hidden text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
+                        设置
+                    </button>
                     <button id="logoutBtn" class="hidden text-gray-700 hover:text-red-600 px-3 py-2 rounded-md text-sm font-medium">
                         退出
                     </button>
@@ -226,6 +229,104 @@
             </div>
         </div>
 
+        <!-- 设置页面 -->
+        <div id="settingsPage" class="hidden min-h-screen bg-gray-50 py-8">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-8">
+                    <button id="backToHomeFromSettings" class="text-blue-600 hover:text-blue-700 mb-4 flex items-center space-x-2 mx-auto">
+                        <span>←</span>
+                        <span>返回主页</span>
+                    </button>
+                    <h1 class="text-3xl font-bold text-gray-900 mb-4">设置</h1>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-lg p-8">
+                    <form id="settingsForm" class="space-y-8">
+                        <!-- API Key 设置 -->
+                        <div class="border-b border-gray-200 pb-8">
+                            <div class="flex items-center mb-4">
+                                <span class="text-2xl mr-3">🔑</span>
+                                <h2 class="text-xl font-semibold text-gray-900">API 配置</h2>
+                            </div>
+                            <p class="text-gray-600 mb-4">
+                                配置您的 OpenAI API Key 以使用 AI 功能。您可以在{' '}
+                                <a href="https://platform.openai.com/api-keys" target="_blank" class="text-blue-600 hover:text-blue-700 underline">
+                                    OpenAI 平台
+                                </a>{' '}
+                                获取 API Key。
+                            </p>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">OpenAI API Key</label>
+                                <div class="relative">
+                                    <input type="password" id="openaiApiKey" class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="请输入您的 OpenAI API Key">
+                                    <button type="button" id="toggleApiKey" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
+                                        <span id="toggleApiKeyIcon">👁️</span>
+                                    </button>
+                                </div>
+                                <p class="text-sm text-gray-500 mt-1">
+                                    您的 API Key 将安全存储在您的账户中，仅用于 AI 功能。
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- 语言设置 -->
+                        <div class="border-b border-gray-200 pb-8">
+                            <div class="flex items-center mb-4">
+                                <span class="text-2xl mr-3">🌐</span>
+                                <h2 class="text-xl font-semibold text-gray-900">语言设置</h2>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">界面语言</label>
+                                <select id="language" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="zh-CN">简体中文</option>
+                                    <option value="en-US">English</option>
+                                    <option value="ja-JP">日本語</option>
+                                    <option value="ko-KR">한국어</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 货币设置 -->
+                        <div class="border-b border-gray-200 pb-8">
+                            <div class="flex items-center mb-4">
+                                <span class="text-2xl mr-3">💰</span>
+                                <h2 class="text-xl font-semibold text-gray-900">货币设置</h2>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">默认货币</label>
+                                <select id="currency" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="CNY">人民币 (¥)</option>
+                                    <option value="USD">美元 ($)</option>
+                                    <option value="EUR">欧元 (€)</option>
+                                    <option value="JPY">日元 (¥)</option>
+                                    <option value="KRW">韩元 (₩)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 保存按钮 -->
+                        <div class="flex justify-end">
+                            <button type="submit" id="saveSettingsBtn" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 flex items-center space-x-2">
+                                <span>💾</span>
+                                <span>保存设置</span>
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- 使用说明 -->
+                    <div class="mt-12 bg-blue-50 border border-blue-200 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-blue-900 mb-3">使用说明</h3>
+                        <div class="text-blue-800 space-y-2">
+                            <p>• 配置 OpenAI API Key 后，您可以使用 AI 智能规划功能</p>
+                            <p>• 支持语音输入旅行需求，AI 会自动生成个性化行程</p>
+                            <p>• 所有数据都会安全存储在云端，支持多设备同步</p>
+                            <p>• 您可以随时修改这些设置，更改会立即生效</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- 结果页面 -->
         <div id="resultPage" class="hidden min-h-screen bg-gray-50 py-8">
             <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -265,6 +366,11 @@
                 page.classList.add('hidden');
             });
             document.getElementById(pageId).classList.remove('hidden');
+            
+            // 如果显示设置页面，加载用户设置
+            if (pageId === 'settingsPage') {
+                loadUserSettings();
+            }
         }
 
         // 显示通知
@@ -283,6 +389,7 @@
         document.getElementById('homeBtn').addEventListener('click', () => showPage('homePage'));
         document.getElementById('loginBtn').addEventListener('click', () => showPage('loginPage'));
         document.getElementById('registerBtn').addEventListener('click', () => showPage('registerPage'));
+        document.getElementById('settingsBtn').addEventListener('click', () => showPage('settingsPage'));
         document.getElementById('startPlanningBtn').addEventListener('click', () => showPage('plannerPage'));
         
         // 返回主页按钮
@@ -290,6 +397,7 @@
         document.getElementById('backToHomeFromRegister').addEventListener('click', () => showPage('homePage'));
         document.getElementById('backToHomeFromPlanner').addEventListener('click', () => showPage('homePage'));
         document.getElementById('backToHomeFromResult').addEventListener('click', () => showPage('homePage'));
+        document.getElementById('backToHomeFromSettings').addEventListener('click', () => showPage('homePage'));
         
         // 创建新行程按钮
         document.getElementById('createNewTrip').addEventListener('click', () => showPage('plannerPage'));
@@ -457,13 +565,26 @@
             document.getElementById('generateBtn').disabled = true;
             
             try {
+                // 获取用户配置的API Key
+                const userApiKey = currentUser?.preferences?.openaiApiKey || '';
+                
+                if (!userApiKey) {
+                    showNotification('请先在设置中配置OpenAI API Key', 'error');
+                    showPage('settingsPage');
+                    return;
+                }
+                
                 const response = await fetch('/api/ai/generate-trip', {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'X-API-Key': userApiKey
                     },
-                    body: JSON.stringify(formData)
+                    body: JSON.stringify({
+                        ...formData,
+                        apiKey: userApiKey
+                    })
                 });
                 const data = await response.json();
                 
@@ -555,13 +676,84 @@
         function updateNavbarForLoggedInUser() {
             document.getElementById('loginBtn').classList.add('hidden');
             document.getElementById('registerBtn').classList.add('hidden');
+            document.getElementById('settingsBtn').classList.remove('hidden');
             document.getElementById('logoutBtn').classList.remove('hidden');
         }
 
         function updateNavbarForGuest() {
             document.getElementById('loginBtn').classList.remove('hidden');
             document.getElementById('registerBtn').classList.remove('hidden');
+            document.getElementById('settingsBtn').classList.add('hidden');
             document.getElementById('logoutBtn').classList.add('hidden');
+        }
+
+        // API Key 显示/隐藏切换
+        document.getElementById('toggleApiKey').addEventListener('click', () => {
+            const apiKeyInput = document.getElementById('openaiApiKey');
+            const toggleIcon = document.getElementById('toggleApiKeyIcon');
+            
+            if (apiKeyInput.type === 'password') {
+                apiKeyInput.type = 'text';
+                toggleIcon.textContent = '🙈';
+            } else {
+                apiKeyInput.type = 'password';
+                toggleIcon.textContent = '👁️';
+            }
+        });
+
+        // 设置表单处理
+        document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const apiKey = document.getElementById('openaiApiKey').value;
+            const language = document.getElementById('language').value;
+            const currency = document.getElementById('currency').value;
+            
+            document.getElementById('saveSettingsBtn').innerHTML = '<span>⏳</span><span>保存中...</span>';
+            document.getElementById('saveSettingsBtn').disabled = true;
+            
+            try {
+                const response = await fetch('/api/auth/settings', {
+                    method: 'PUT',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        preferences: {
+                            openaiApiKey: apiKey,
+                            language: language,
+                            currency: currency
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('设置保存成功！');
+                    // 更新当前用户信息
+                    if (currentUser) {
+                        currentUser.preferences = data.user.preferences;
+                    }
+                } else {
+                    showNotification(data.message || '保存设置失败', 'error');
+                }
+            } catch (error) {
+                showNotification('保存设置失败，请重试', 'error');
+            } finally {
+                document.getElementById('saveSettingsBtn').innerHTML = '<span>💾</span><span>保存设置</span>';
+                document.getElementById('saveSettingsBtn').disabled = false;
+            }
+        });
+
+        // 加载用户设置
+        function loadUserSettings() {
+            if (currentUser && currentUser.preferences) {
+                document.getElementById('openaiApiKey').value = currentUser.preferences.openaiApiKey || '';
+                document.getElementById('language').value = currentUser.preferences.language || 'zh-CN';
+                document.getElementById('currency').value = currentUser.preferences.currency || 'CNY';
+            }
         }
 
         // 检查是否已登录
