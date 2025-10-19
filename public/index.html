@@ -576,13 +576,13 @@
         function parseVoiceInput(transcript) {
             console.log('🧠 开始解析语音输入:', transcript);
             
-            // 目的地解析 - 支持多种表达方式
+            // 目的地解析 - 支持多种表达方式，优化匹配精度
             const destinationPatterns = [
-                /去(.+?)(?:，|$|旅行|旅游)/,
-                /到(.+?)(?:，|$|旅行|旅游)/,
-                /(.+?)(?:旅行|旅游)(?:，|$)/,
-                /我想去(.+?)(?:，|$)/,
-                /计划去(.+?)(?:，|$)/
+                /去([^，\d]+?)(?:，|$|旅行|旅游|玩)/,
+                /到([^，\d]+?)(?:，|$|旅行|旅游|玩)/,
+                /([^，\d]+?)(?:旅行|旅游)(?:，|$)/,
+                /我想去([^，\d]+?)(?:，|$)/,
+                /计划去([^，\d]+?)(?:，|$)/
             ];
             
             let destination = null;
@@ -590,7 +590,11 @@
                 const match = transcript.match(pattern);
                 if (match) {
                     destination = match[1].trim();
-                    break;
+                    // 清理目的地名称，移除数字和多余词汇
+                    destination = destination.replace(/\d+天|\d+日|\d+元|\d+万|\d+千|\d+人|\d+个/, '').trim();
+                    if (destination.length > 0 && destination.length < 10) { // 限制长度
+                        break;
+                    }
                 }
             }
             
@@ -675,37 +679,74 @@
             }
             
             // 应用解析结果
+            let filledFields = [];
+            
             if (destination) {
-                document.getElementById('destination').value = destination;
-                console.log('✅ 解析到目的地:', destination);
+                const destinationField = document.getElementById('destination');
+                if (destinationField) {
+                    destinationField.value = destination;
+                    filledFields.push('目的地');
+                    console.log('✅ 解析到目的地:', destination);
+                } else {
+                    console.error('❌ 找不到目的地输入框');
+                }
             }
             
             if (days) {
-                const startDate = new Date();
-                const endDate = new Date();
-                endDate.setDate(startDate.getDate() + days);
-                document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
-                document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
-                console.log('✅ 解析到天数:', days);
+                const startDateField = document.getElementById('startDate');
+                const endDateField = document.getElementById('endDate');
+                if (startDateField && endDateField) {
+                    const startDate = new Date();
+                    const endDate = new Date();
+                    endDate.setDate(startDate.getDate() + days);
+                    startDateField.value = startDate.toISOString().split('T')[0];
+                    endDateField.value = endDate.toISOString().split('T')[0];
+                    filledFields.push('日期');
+                    console.log('✅ 解析到天数:', days, '开始日期:', startDateField.value, '结束日期:', endDateField.value);
+                } else {
+                    console.error('❌ 找不到日期输入框');
+                }
             }
             
             if (budget) {
-                document.getElementById('budget').value = budget;
-                console.log('✅ 解析到预算:', budget);
+                const budgetField = document.getElementById('budget');
+                if (budgetField) {
+                    budgetField.value = budget;
+                    filledFields.push('预算');
+                    console.log('✅ 解析到预算:', budget);
+                } else {
+                    console.error('❌ 找不到预算输入框');
+                }
             }
             
             if (people) {
-                document.getElementById('travelers').value = people;
-                console.log('✅ 解析到人数:', people);
+                const travelersField = document.getElementById('travelers');
+                if (travelersField) {
+                    travelersField.value = people;
+                    filledFields.push('人数');
+                    console.log('✅ 解析到人数:', people);
+                } else {
+                    console.error('❌ 找不到人数输入框');
+                }
             }
             
             if (preferences.length > 0) {
-                document.getElementById('preferences').value = preferences.join(', ');
-                console.log('✅ 解析到偏好:', preferences);
+                const preferencesField = document.getElementById('preferences');
+                if (preferencesField) {
+                    preferencesField.value = preferences.join(', ');
+                    filledFields.push('偏好');
+                    console.log('✅ 解析到偏好:', preferences);
+                } else {
+                    console.error('❌ 找不到偏好输入框');
+                }
             }
             
             // 显示解析结果
-            showNotification(`语音解析完成！已识别：${destination ? '目的地' : ''}${days ? '天数' : ''}${budget ? '预算' : ''}${people ? '人数' : ''}${preferences.length > 0 ? '偏好' : ''}`, 'success');
+            if (filledFields.length > 0) {
+                showNotification(`语音解析完成！已自动填写：${filledFields.join('、')}`, 'success');
+            } else {
+                showNotification('语音解析完成，但未识别到可填充的信息', 'info');
+            }
         }
 
         // 语音输入
