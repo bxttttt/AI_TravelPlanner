@@ -138,6 +138,8 @@ function parseVoiceInputFallback(voiceText) {
   const startDate = today.toISOString().split('T')[0];
   const endDate = days ? new Date(today.getTime() + days * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : startDate;
   
+  console.log('📅 日期计算:', { today: startDate, days, endDate });
+  
   return {
     destination: destination || '未知',
     travelers: travelers,
@@ -428,21 +430,33 @@ app.post('/api/ai/parse-voice', auth, async (req, res) => {
   console.log('🎤 AI语音解析请求:', voiceText);
   
   try {
+    // 获取当前日期作为上下文
+    const today = new Date();
+    const currentDate = today.toISOString().split('T')[0]; // YYYY-MM-DD格式
+    const currentDateStr = today.toLocaleDateString('zh-CN', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      weekday: 'long'
+    }); // 中文日期格式，如"2025年10月19日 星期六"
+    
     // 构建AI解析提示词
     const prompt = `请从以下语音输入中提取旅行信息，并返回JSON格式的结构化数据：
 
+当前日期：${currentDateStr}（${currentDate}）
 语音输入："${voiceText}"
 
 请提取以下信息：
 1. destination: 目的地（国家或城市名称）
 2. travelers: 同行人数（数字）
-3. startDate: 出发日期（YYYY-MM-DD格式，如果未指定则使用今天）
-4. endDate: 返回日期（YYYY-MM-DD格式，如果未指定则根据天数计算）
+3. startDate: 出发日期（YYYY-MM-DD格式，如果未指定则使用今天：${currentDate}）
+4. endDate: 返回日期（YYYY-MM-DD格式，如果未指定则根据天数从今天开始计算）
 5. budget: 预算（数字，单位：元）
 6. preferences: 旅行偏好（数组，如["美食", "购物", "文化"]）
 
 注意：
-- 如果语音中提到天数但没有具体日期，请从今天开始计算
+- 今天是${currentDateStr}（${currentDate}）
+- 如果语音中提到天数但没有具体日期，请从今天（${currentDate}）开始计算
 - 预算请统一转换为元为单位
 - 偏好请从以下选项中选择：美食、购物、文化、自然、动漫、娱乐、亲子
 - 如果信息不明确，请使用合理的默认值
