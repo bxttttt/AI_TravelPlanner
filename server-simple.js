@@ -445,50 +445,70 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
   try {
     console.log('正在调用真实API...');
     
-    // 构建优化的提示词
-    const prompt = `作为专业的旅行规划师，请为以下需求制定详细且合理的旅行计划：
+    // 构建优化的多日行程提示词
+    const days = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1;
+    const dailyBudget = Math.floor(budget / days);
+    
+    const prompt = `作为专业旅行规划师，请为以下需求制定${days}天${days-1}夜的详细旅行计划：
 
+【基本信息】
 目的地：${destination}
 出发日期：${startDate}
 返回日期：${endDate}
-总预算：${budget}元（人民币）
+总预算：${budget}元人民币
 人数：${travelers}人
 特殊偏好：${preferences || '无特殊要求'}
 
-重要要求：
-1. 每日活动控制在3-5个，避免过于紧凑
-2. 合理分配预算：交通30%、住宿25%、餐饮25%、景点15%、购物5%
-3. 考虑实际交通时间和休息时间
-4. 根据季节和天气安排室内外活动
-5. 提供具体的费用估算，确保在预算范围内
-6. 活动时间安排要合理，避免过于匆忙
+【核心要求】
+1. 生成${days}天的完整行程，每天2-4个主要活动
+2. 预算分配：交通30%、住宿25%、餐饮25%、景点15%、购物5%
+3. 每日预算约${dailyBudget}元，合理分配到各项活动
+4. 活动时间安排：上午9-12点、下午2-6点、晚上7-10点
+5. 考虑交通时间和休息时间，避免过于紧凑
+6. 根据目的地特色安排室内外活动
 
-请以JSON格式返回，包含以下结构：
+【输出格式】
+请严格按照以下JSON格式返回，确保格式正确：
+
 {
-  "summary": "旅行概述（包含预算分配说明）",
+  "summary": "旅行概述，包含预算分配说明",
   "itinerary": [
     {
-      "date": "YYYY-MM-DD",
+      "date": "2025-10-21",
+      "dayTitle": "第一天：抵达与初探",
+      "dailyBudget": 1250,
       "activities": [
         {
-          "time": "HH:MM-HH:MM",
-          "title": "具体活动名称",
-          "description": "详细的活动描述和注意事项",
-          "location": "具体地址或区域",
-          "cost": 具体费用数字,
-          "category": "交通/住宿/餐饮/景点/购物/其他"
+          "time": "09:00-11:00",
+          "title": "活动名称",
+          "description": "详细描述",
+          "location": "具体地点",
+          "cost": 300,
+          "category": "交通"
         }
       ]
     }
   ],
   "recommendations": {
-    "restaurants": ["具体的餐厅名称和特色"],
-    "attractions": ["具体的景点名称和亮点"],
-    "tips": ["实用的旅行贴士和注意事项"]
+    "restaurants": ["餐厅1 - 特色", "餐厅2 - 推荐理由"],
+    "attractions": ["景点1 - 亮点", "景点2 - 特色"],
+    "tips": ["贴士1", "贴士2", "贴士3"]
+  },
+  "budgetSummary": {
+    "total": ${budget},
+    "transportation": ${Math.floor(budget * 0.3)},
+    "accommodation": ${Math.floor(budget * 0.25)},
+    "dining": ${Math.floor(budget * 0.25)},
+    "attractions": ${Math.floor(budget * 0.15)},
+    "shopping": ${Math.floor(budget * 0.05)}
   }
 }
 
-注意：请确保JSON格式正确，所有字符串用双引号，数字不加引号。`;
+【重要提醒】
+- 必须返回有效的JSON格式
+- 所有字符串用双引号包围
+- 数字不加引号
+- 确保JSON结构完整，无语法错误`;
 
     // 使用HTTP请求调用API
     const axios = require('axios');
@@ -526,9 +546,9 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
     console.log('AI原始响应:', aiResponse.substring(0, 200) + '...');
     
     // 解析AI响应
-    let parsedResponse = parseAIResponse(aiResponse, destination, travelers, startDate);
+    let parsedResponse = parseAIResponse(aiResponse, destination, travelers, startDate, endDate, budget, preferences);
     
-    function parseAIResponse(aiResponse, destination, travelers, startDate) {
+    function parseAIResponse(aiResponse, destination, travelers, startDate, endDate, budget, preferences) {
       // 清理可能的代码块标记
       let cleanResponse = aiResponse;
       if (cleanResponse.includes('```json')) {
@@ -614,28 +634,138 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
         } catch (extractError) {
           console.log('❌ 基本信息提取失败:', extractError.message);
           
-          // 最终降级
-          return {
-            summary: `AI为您规划了${destination}的${travelers}人旅行`,
-            itinerary: [{
-              date: startDate,
-              activities: [{
-                time: '09:00',
-                title: 'AI规划的活动',
-                description: aiResponse.substring(0, 200) + '...',
-                location: destination,
-                cost: 0,
-                category: 'AI推荐'
-              }]
-            }],
-            recommendations: {
-              restaurants: ['AI推荐餐厅'],
-              attractions: ['AI推荐景点'],
-              tips: ['AI实用贴士']
-            }
-          };
+          // 智能多日行程降级
+          console.log('🔄 生成智能多日行程...');
+          return generateMultiDayFallback(destination, travelers, startDate, endDate, budget, preferences);
         }
       }
+    }
+    
+    // 生成智能多日行程降级方案
+    function generateMultiDayFallback(destination, travelers, startDate, endDate, budget, preferences) {
+      const days = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1;
+      const dailyBudget = Math.floor(budget / days);
+      
+      const itinerary = [];
+      for (let i = 0; i < days; i++) {
+        const currentDate = new Date(startDate);
+        currentDate.setDate(currentDate.getDate() + i);
+        const dateStr = currentDate.toISOString().split('T')[0];
+        
+        const dayActivities = generateDayActivities(destination, i, days, dailyBudget, preferences);
+        
+        itinerary.push({
+          date: dateStr,
+          dayTitle: `第${i + 1}天：${getDayTitle(i, days, destination)}`,
+          dailyBudget: dailyBudget,
+          activities: dayActivities
+        });
+      }
+      
+      return {
+        summary: `AI为您规划了${destination}的${days}天${days-1}夜旅行，总预算${budget}元，每日预算约${dailyBudget}元`,
+        itinerary: itinerary,
+        recommendations: {
+          restaurants: getRestaurantRecommendations(destination),
+          attractions: getAttractionRecommendations(destination),
+          tips: getTravelTips(destination, preferences)
+        },
+        budgetSummary: {
+          total: budget,
+          transportation: Math.floor(budget * 0.3),
+          accommodation: Math.floor(budget * 0.25),
+          dining: Math.floor(budget * 0.25),
+          attractions: Math.floor(budget * 0.15),
+          shopping: Math.floor(budget * 0.05)
+        }
+      };
+    }
+    
+    // 生成每日活动
+    function generateDayActivities(destination, dayIndex, totalDays, dailyBudget, preferences) {
+      const activities = [];
+      
+      if (dayIndex === 0) {
+        // 第一天：抵达
+        activities.push({
+          time: '14:00-16:00',
+          title: '抵达目的地',
+          description: `抵达${destination}，办理入住手续，熟悉周边环境`,
+          location: '机场/酒店',
+          cost: 0,
+          category: '交通'
+        });
+        activities.push({
+          time: '18:00-20:00',
+          title: '当地美食体验',
+          description: `品尝${destination}特色美食，感受当地文化`,
+          location: '特色餐厅',
+          cost: Math.floor(dailyBudget * 0.3),
+          category: '餐饮'
+        });
+      } else if (dayIndex === totalDays - 1) {
+        // 最后一天：离开
+        activities.push({
+          time: '09:00-11:00',
+          title: '最后购物',
+          description: '购买纪念品和特产',
+          location: '商业区',
+          cost: Math.floor(dailyBudget * 0.2),
+          category: '购物'
+        });
+        activities.push({
+          time: '14:00-16:00',
+          title: '前往机场',
+          description: '前往机场，办理登机手续',
+          location: '机场',
+          cost: Math.floor(dailyBudget * 0.1),
+          category: '交通'
+        });
+      } else {
+        // 中间天数：游览
+        const morningActivity = getDestinationActivity(destination, 'morning', dailyBudget);
+        const afternoonActivity = getDestinationActivity(destination, 'afternoon', dailyBudget);
+        const eveningActivity = getDestinationActivity(destination, 'evening', dailyBudget);
+        
+        activities.push(morningActivity, afternoonActivity, eveningActivity);
+      }
+      
+      return activities;
+    }
+    
+    // 获取目的地特色活动
+    function getDestinationActivity(destination, timeOfDay, dailyBudget) {
+      const destinationLower = destination.toLowerCase();
+      const timeSlots = {
+        morning: { time: '09:00-12:00', cost: Math.floor(dailyBudget * 0.3) },
+        afternoon: { time: '14:00-17:00', cost: Math.floor(dailyBudget * 0.4) },
+        evening: { time: '19:00-21:00', cost: Math.floor(dailyBudget * 0.3) }
+      };
+      
+      const slot = timeSlots[timeOfDay];
+      
+      if (destinationLower.includes('韩国') || destinationLower.includes('首尔')) {
+        const activities = {
+          morning: { title: '景福宫参观', description: '游览朝鲜王朝宫殿，感受韩国历史文化', location: '景福宫', category: '文化' },
+          afternoon: { title: '明洞购物', description: '探索韩国潮流购物区，购买特色商品', location: '明洞', category: '购物' },
+          evening: { title: '韩式烤肉', description: '品尝正宗韩式烤肉，体验韩国饮食文化', location: '烤肉店', category: '餐饮' }
+        };
+        return { ...activities[timeOfDay], ...slot };
+      } else {
+        const activities = {
+          morning: { title: '城市观光', description: '游览当地著名景点，了解历史文化', location: '市中心', category: '景点' },
+          afternoon: { title: '文化体验', description: '参观博物馆或文化场所，深度了解当地', location: '文化区', category: '文化' },
+          evening: { title: '当地美食', description: '品尝当地特色美食，感受地方文化', location: '特色餐厅', category: '餐饮' }
+        };
+        return { ...activities[timeOfDay], ...slot };
+      }
+    }
+    
+    // 获取每日标题
+    function getDayTitle(dayIndex, totalDays, destination) {
+      if (dayIndex === 0) return '抵达与初探';
+      if (dayIndex === totalDays - 1) return '告别与返程';
+      return '深度游览';
     }
     
     res.json({

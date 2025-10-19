@@ -774,10 +774,13 @@
                     <div id="dayContent" class="space-y-4">
                         ${itinerary.length > 0 ? `
                             <div class="border-l-4 border-blue-500 pl-4">
-                                <h4 class="font-semibold text-gray-900">${new Date(itinerary[0].date).toLocaleDateString('zh-CN')}</h4>
+                                <div class="flex justify-between items-center mb-2">
+                                    <h4 class="font-semibold text-gray-900">${itinerary[0].dayTitle || new Date(itinerary[0].date).toLocaleDateString('zh-CN')}</h4>
+                                    ${itinerary[0].dailyBudget ? `<span class="text-sm font-bold text-green-600">每日预算: ¥${itinerary[0].dailyBudget}</span>` : ''}
+                                </div>
                                 <div class="mt-2 space-y-2">
                                     ${itinerary[0].activities ? itinerary[0].activities.map(activity => `
-                                        <div class="flex items-start space-x-3 bg-gray-50 p-3 rounded-lg">
+                                        <div class="flex items-start space-x-3 bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-colors">
                                             <span class="text-gray-400">🕐</span>
                                             <div class="flex-1">
                                                 <div class="flex justify-between items-start">
@@ -799,6 +802,38 @@
                         ` : '<p class="text-gray-500">暂无行程安排</p>'}
                     </div>
                 </div>
+                
+                ${safeAiData.budgetSummary ? `
+                    <div class="bg-white p-6 rounded-lg mt-6">
+                        <h3 class="text-xl font-bold text-gray-900 mb-4">💰 预算分配</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <div class="bg-blue-50 p-4 rounded-lg">
+                                <div class="text-sm font-medium text-blue-800">交通费用</div>
+                                <div class="text-2xl font-bold text-blue-900">¥${safeAiData.budgetSummary.transportation?.toLocaleString() || '0'}</div>
+                            </div>
+                            <div class="bg-green-50 p-4 rounded-lg">
+                                <div class="text-sm font-medium text-green-800">住宿费用</div>
+                                <div class="text-2xl font-bold text-green-900">¥${safeAiData.budgetSummary.accommodation?.toLocaleString() || '0'}</div>
+                            </div>
+                            <div class="bg-yellow-50 p-4 rounded-lg">
+                                <div class="text-sm font-medium text-yellow-800">餐饮费用</div>
+                                <div class="text-2xl font-bold text-yellow-900">¥${safeAiData.budgetSummary.dining?.toLocaleString() || '0'}</div>
+                            </div>
+                            <div class="bg-purple-50 p-4 rounded-lg">
+                                <div class="text-sm font-medium text-purple-800">景点门票</div>
+                                <div class="text-2xl font-bold text-purple-900">¥${safeAiData.budgetSummary.attractions?.toLocaleString() || '0'}</div>
+                            </div>
+                            <div class="bg-pink-50 p-4 rounded-lg">
+                                <div class="text-sm font-medium text-pink-800">购物预算</div>
+                                <div class="text-2xl font-bold text-pink-900">¥${safeAiData.budgetSummary.shopping?.toLocaleString() || '0'}</div>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <div class="text-sm font-medium text-gray-800">总预算</div>
+                                <div class="text-2xl font-bold text-gray-900">¥${safeAiData.budgetSummary.total?.toLocaleString() || '0'}</div>
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
                 
                 ${recommendations && (recommendations.restaurants || recommendations.attractions || recommendations.tips) ? `
                     <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -853,10 +888,13 @@
                     const day = itinerary[currentDay];
                     dayContent.innerHTML = `
                         <div class="border-l-4 border-blue-500 pl-4">
-                            <h4 class="font-semibold text-gray-900">${new Date(day.date).toLocaleDateString('zh-CN')}</h4>
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="font-semibold text-gray-900">${day.dayTitle || new Date(day.date).toLocaleDateString('zh-CN')}</h4>
+                                ${day.dailyBudget ? `<span class="text-sm font-bold text-green-600">每日预算: ¥${day.dailyBudget}</span>` : ''}
+                            </div>
                             <div class="mt-2 space-y-2">
                                 ${day.activities ? day.activities.map(activity => `
-                                    <div class="flex items-start space-x-3 bg-gray-50 p-3 rounded-lg">
+                                    <div class="flex items-start space-x-3 bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-colors">
                                         <span class="text-gray-400">🕐</span>
                                         <div class="flex-1">
                                             <div class="flex justify-between items-start">
