@@ -564,16 +564,209 @@ app.post('/api/ai/generate-trip-rag', auth, async (req, res) => {
 // 获取景点图片接口
 app.get('/api/images/:location', auth, async (req, res) => {
   const { location } = req.params;
+  const { tripData } = req.query;
   console.log('🖼️ 获取景点图片请求:', location);
   
   try {
-    const images = await getLocationImages(location);
+    let images = [];
+    
+    if (tripData) {
+      // 如果有行程数据，从行程中提取关键词
+      const parsedTripData = JSON.parse(tripData);
+      images = await getImagesFromTripData(location, parsedTripData);
+    } else {
+      // 没有行程数据，使用基础搜索
+      images = await getLocationImages(location);
+    }
+    
     res.json({ success: true, images: images });
   } catch (error) {
     console.error('❌ 获取景点图片失败:', error);
     res.status(500).json({ success: false, error: '获取图片失败，请重试' });
   }
 });
+
+// 从行程数据中提取关键词并获取图片
+async function getImagesFromTripData(location, tripData) {
+  try {
+    console.log('🔍 从行程数据中提取关键词:', location);
+    
+    // 提取关键词
+    const keywords = extractKeywordsFromTrip(tripData);
+    console.log('📝 提取的关键词:', keywords);
+    
+    const allImages = [];
+    
+    // 为每个关键词获取4-8张图片
+    for (const keyword of keywords) {
+      try {
+        const images = await getImagesForKeyword(location, keyword, 6);
+        allImages.push(...images);
+        console.log(`✅ 关键词 "${keyword}" 获取到 ${images.length} 张图片`);
+      } catch (error) {
+        console.log(`⚠️ 关键词 "${keyword}" 获取图片失败:`, error.message);
+      }
+    }
+    
+    // 去重并限制总数
+    const uniqueImages = allImages.filter((img, index, self) => 
+      index === self.findIndex(t => t.url === img.url)
+    ).slice(0, 25);
+    
+    console.log(`🎉 总共获取到 ${uniqueImages.length} 张多样化图片`);
+    return uniqueImages;
+    
+  } catch (error) {
+    console.error('❌ 从行程数据获取图片失败:', error);
+    return getFallbackImages(location);
+  }
+}
+
+// 从行程数据中提取关键词
+function extractKeywordsFromTrip(tripData) {
+  const keywords = new Set();
+  
+  // 基础关键词
+  keywords.add(tripData.destination || 'travel');
+  
+  // 从行程安排中提取关键词
+  if (tripData.itinerary && Array.isArray(tripData.itinerary)) {
+    tripData.itinerary.forEach(day => {
+      if (day.activities && Array.isArray(day.activities)) {
+        day.activities.forEach(activity => {
+          // 提取活动类型关键词
+          if (activity.activity) {
+            const activityText = activity.activity.toLowerCase();
+            
+            // 美食相关
+            if (activityText.includes('美食') || activityText.includes('餐厅') || activityText.includes('小吃') || 
+                activityText.includes('美食') || activityText.includes('料理') || activityText.includes('品尝')) {
+              keywords.add('food');
+              keywords.add('restaurant');
+            }
+            
+            // 文化相关
+            if (activityText.includes('博物馆') || activityText.includes('文化') || activityText.includes('历史') || 
+                activityText.includes('古迹') || activityText.includes('宫殿') || activityText.includes('寺庙')) {
+              keywords.add('culture');
+              keywords.add('museum');
+              keywords.add('history');
+            }
+            
+            // 购物相关
+            if (activityText.includes('购物') || activityText.includes('商店') || activityText.includes('市场') || 
+                activityText.includes('商业街') || activityText.includes('购物中心')) {
+              keywords.add('shopping');
+              keywords.add('market');
+            }
+            
+            // 自然相关
+            if (activityText.includes('公园') || activityText.includes('花园') || activityText.includes('自然') || 
+                activityText.includes('风景') || activityText.includes('山') || activityText.includes('湖')) {
+              keywords.add('nature');
+              keywords.add('park');
+            }
+            
+            // 娱乐相关
+            if (activityText.includes('娱乐') || activityText.includes('夜生活') || activityText.includes('酒吧') || 
+                activityText.includes('俱乐部') || activityText.includes('表演')) {
+              keywords.add('entertainment');
+              keywords.add('nightlife');
+            }
+          }
+          
+          // 提取地点关键词
+          if (activity.location && activity.location.name) {
+            const locationName = activity.location.name.toLowerCase();
+            if (locationName.includes('街') || locationName.includes('路')) {
+              keywords.add('street');
+            }
+            if (locationName.includes('广场') || locationName.includes('中心')) {
+              keywords.add('square');
+            }
+            if (locationName.includes('桥') || locationName.includes('河')) {
+              keywords.add('bridge');
+            }
+          }
+        });
+      }
+    });
+  }
+  
+  // 从用户偏好中提取关键词
+  if (tripData.preferences && Array.isArray(tripData.preferences)) {
+    tripData.preferences.forEach(pref => {
+      if (pref.includes('美食')) keywords.add('food');
+      if (pref.includes('购物')) keywords.add('shopping');
+      if (pref.includes('文化')) keywords.add('culture');
+      if (pref.includes('自然')) keywords.add('nature');
+      if (pref.includes('娱乐')) keywords.add('entertainment');
+    });
+  }
+  
+  // 转换为数组并添加一些通用关键词
+  const keywordArray = Array.from(keywords);
+  keywordArray.push('landmarks', 'architecture', 'tourism');
+  
+  return keywordArray.slice(0, 8); // 限制关键词数量
+}
+
+// 为特定关键词获取图片
+async function getImagesForKeyword(location, keyword, count = 6) {
+  try {
+    const searchTerms = [
+      `${location} ${keyword}`,
+      `${location} ${keyword} travel`,
+      `${location} ${keyword} tourism`,
+      `${keyword} ${location}`
+    ];
+    
+    const images = [];
+    
+    for (const term of searchTerms) {
+      try {
+        const response = await axios.get(`https://api.unsplash.com/search/photos`, {
+          params: {
+            query: term,
+            per_page: Math.ceil(count / searchTerms.length),
+            orientation: 'landscape'
+          },
+          headers: {
+            'Authorization': 'Client-ID YOUR_UNSPLASH_ACCESS_KEY'
+          },
+          timeout: 5000
+        });
+        
+        if (response.data && response.data.results) {
+          response.data.results.forEach(photo => {
+            images.push({
+              url: photo.urls.regular,
+              thumb: photo.urls.thumb,
+              description: photo.description || photo.alt_description || `${location} ${keyword}`,
+              photographer: photo.user.name,
+              photographer_url: photo.user.links.html,
+              source: 'unsplash',
+              keyword: keyword
+            });
+          });
+        }
+      } catch (apiError) {
+        console.log(`⚠️ 搜索 "${term}" 失败:`, apiError.message);
+      }
+    }
+    
+    // 去重并限制数量
+    const uniqueImages = images.filter((img, index, self) => 
+      index === self.findIndex(t => t.url === img.url)
+    ).slice(0, count);
+    
+    return uniqueImages;
+    
+  } catch (error) {
+    console.error(`❌ 获取关键词 "${keyword}" 图片失败:`, error);
+    return [];
+  }
+}
 
 // 获取地点相关图片
 async function getLocationImages(location) {

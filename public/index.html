@@ -1734,14 +1734,33 @@
                             
                             <!-- 景点图片展示 -->
                             <div class="mt-6">
-                                <h4 class="text-lg font-semibold text-gray-900 mb-4">📸 景点图片</h4>
-                                <div id="locationImages" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                                    <div class="flex items-center justify-center h-32 bg-gray-100 rounded-lg">
-                                        <div class="text-center">
-                                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                                            <p class="text-sm text-gray-500">加载图片中...</p>
+                                <div class="flex justify-between items-center mb-4">
+                                    <h4 class="text-lg font-semibold text-gray-900">📸 景点图片</h4>
+                                    <div class="flex items-center space-x-2">
+                                        <button id="scrollLeftBtn" class="p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors" onclick="scrollImages('left')">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                            </svg>
+                                        </button>
+                                        <button id="scrollRightBtn" class="p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors" onclick="scrollImages('right')">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="relative">
+                                    <div id="locationImages" class="flex space-x-4 overflow-x-auto scrollbar-hide pb-4" style="scroll-behavior: smooth;">
+                                        <div class="flex items-center justify-center h-48 w-64 bg-gray-100 rounded-lg flex-shrink-0">
+                                            <div class="text-center">
+                                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                                                <p class="text-sm text-gray-500">加载图片中...</p>
+                                            </div>
                                         </div>
                                     </div>
+                                </div>
+                                <div class="mt-2 text-sm text-gray-500 text-center">
+                                    💡 左右滑动查看更多图片，点击图片查看大图
                                 </div>
                             </div>
                             
@@ -1808,8 +1827,8 @@
                         }, 500);
                     }
                     
-                    // 加载景点图片
-                    loadLocationImages(trip.destination);
+                    // 加载景点图片（传递行程数据）
+                    loadLocationImages(trip.destination, trip.aiData);
                 }
             }, 100);
         }
@@ -2394,11 +2413,17 @@
         }
 
         // 加载景点图片
-        async function loadLocationImages(destination) {
+        async function loadLocationImages(destination, tripData = null) {
             try {
                 console.log('📸 开始加载景点图片:', destination);
                 
-                const response = await fetch(`/api/images/${encodeURIComponent(destination)}`, {
+                // 构建请求URL，如果有行程数据则传递
+                let url = `/api/images/${encodeURIComponent(destination)}`;
+                if (tripData) {
+                    url += `?tripData=${encodeURIComponent(JSON.stringify(tripData))}`;
+                }
+                
+                const response = await fetch(url, {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
@@ -2428,7 +2453,7 @@
 
             if (images.length === 0) {
                 container.innerHTML = `
-                    <div class="col-span-full flex items-center justify-center h-32 bg-gray-100 rounded-lg">
+                    <div class="flex items-center justify-center h-48 w-64 bg-gray-100 rounded-lg flex-shrink-0">
                         <div class="text-center">
                             <p class="text-gray-500">暂无图片</p>
                         </div>
@@ -2438,8 +2463,8 @@
             }
 
             container.innerHTML = images.map((image, index) => `
-                <div class="relative group cursor-pointer" onclick="openImageModal('${image.url}', '${image.description || ''}')">
-                    <div class="aspect-w-16 aspect-h-12 bg-gray-200 rounded-lg overflow-hidden">
+                <div class="relative group cursor-pointer flex-shrink-0 w-64 h-48" onclick="openImageModal('${image.url}', '${image.description || ''}')">
+                    <div class="w-full h-full bg-gray-200 rounded-lg overflow-hidden">
                         <img 
                             src="${image.url}" 
                             alt="${image.description || '景点图片'}"
@@ -2457,6 +2482,7 @@
                     </div>
                     <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-2 rounded-b-lg">
                         <p class="text-white text-xs truncate">${image.description || '景点图片'}</p>
+                        ${image.keyword ? `<p class="text-white text-xs opacity-75">#${image.keyword}</p>` : ''}
                     </div>
                 </div>
             `).join('');
@@ -2467,7 +2493,7 @@
             const container = document.getElementById('locationImages');
             if (container) {
                 container.innerHTML = `
-                    <div class="col-span-full flex items-center justify-center h-32 bg-gray-100 rounded-lg">
+                    <div class="flex items-center justify-center h-48 w-64 bg-gray-100 rounded-lg flex-shrink-0">
                         <div class="text-center">
                             <svg class="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
@@ -2478,6 +2504,40 @@
                 `;
             }
         }
+
+        // 横向滚动功能
+        function scrollImages(direction) {
+            const container = document.getElementById('locationImages');
+            if (!container) return;
+
+            const scrollAmount = 320; // 每次滚动一个图片的宽度 + 间距
+            const currentScroll = container.scrollLeft;
+            
+            if (direction === 'left') {
+                container.scrollTo({
+                    left: currentScroll - scrollAmount,
+                    behavior: 'smooth'
+                });
+            } else {
+                container.scrollTo({
+                    left: currentScroll + scrollAmount,
+                    behavior: 'smooth'
+                });
+            }
+        }
+
+        // 添加滚动条隐藏样式
+        const style = document.createElement('style');
+        style.textContent = `
+            .scrollbar-hide {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+            .scrollbar-hide::-webkit-scrollbar {
+                display: none;
+            }
+        `;
+        document.head.appendChild(style);
 
         // 图片模态框
         function openImageModal(imageUrl, description) {
