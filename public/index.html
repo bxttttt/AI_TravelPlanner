@@ -415,7 +415,13 @@
         }
 
         // 事件监听器
-        document.getElementById('homeBtn').addEventListener('click', () => showPage('homePage'));
+        document.getElementById('homeBtn').addEventListener('click', () => {
+            showPage('homePage');
+            // 如果用户已登录，刷新旅行规划列表
+            if (localStorage.getItem('token') && typeof loadUserTrips === 'function') {
+                loadUserTrips();
+            }
+        });
         document.getElementById('loginBtn').addEventListener('click', () => showPage('loginPage'));
         document.getElementById('registerBtn').addEventListener('click', () => showPage('registerPage'));
         document.getElementById('settingsBtn').addEventListener('click', () => showPage('settingsPage'));
@@ -423,11 +429,36 @@
         document.getElementById('createFirstTripBtn').addEventListener('click', () => showPage('plannerPage'));
         
         // 返回主页按钮
-        document.getElementById('backToHomeFromLogin').addEventListener('click', () => showPage('homePage'));
-        document.getElementById('backToHomeFromRegister').addEventListener('click', () => showPage('homePage'));
-        document.getElementById('backToHomeFromPlanner').addEventListener('click', () => showPage('homePage'));
-        document.getElementById('backToHomeFromResult').addEventListener('click', () => showPage('homePage'));
-        document.getElementById('backToHomeFromSettings').addEventListener('click', () => showPage('homePage'));
+        document.getElementById('backToHomeFromLogin').addEventListener('click', () => {
+            showPage('homePage');
+            if (localStorage.getItem('token') && typeof loadUserTrips === 'function') {
+                loadUserTrips();
+            }
+        });
+        document.getElementById('backToHomeFromRegister').addEventListener('click', () => {
+            showPage('homePage');
+            if (localStorage.getItem('token') && typeof loadUserTrips === 'function') {
+                loadUserTrips();
+            }
+        });
+        document.getElementById('backToHomeFromPlanner').addEventListener('click', () => {
+            showPage('homePage');
+            if (localStorage.getItem('token') && typeof loadUserTrips === 'function') {
+                loadUserTrips();
+            }
+        });
+        document.getElementById('backToHomeFromResult').addEventListener('click', () => {
+            showPage('homePage');
+            if (localStorage.getItem('token') && typeof loadUserTrips === 'function') {
+                loadUserTrips();
+            }
+        });
+        document.getElementById('backToHomeFromSettings').addEventListener('click', () => {
+            showPage('homePage');
+            if (localStorage.getItem('token') && typeof loadUserTrips === 'function') {
+                loadUserTrips();
+            }
+        });
         
         // 创建新行程按钮
         document.getElementById('createNewTrip').addEventListener('click', () => showPage('plannerPage'));
@@ -648,6 +679,11 @@
                     const tripData = await tripResponse.json();
                     displayTripResult(tripData.trip, data.data);
                     showNotification('AI旅行计划生成成功！');
+                    
+                    // 刷新主页的旅行规划列表
+                    if (typeof loadUserTrips === 'function') {
+                        loadUserTrips();
+                    }
                 } else {
                     showNotification('生成旅行计划失败，请重试', 'error');
                 }
