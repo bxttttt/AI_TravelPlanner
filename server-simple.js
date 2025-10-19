@@ -305,8 +305,8 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
   // 在演示模式下，如果没有API Key，使用演示数据
   const isDemoMode = !userApiKey && !defaultApiKey;
   
-  // 使用真实的API调用
-  const useDemoMode = false; // 使用真实API
+  // 由于网络问题，使用智能降级模式
+  const useDemoMode = true; // 使用智能降级模式
   
   if (isDemoMode || useDemoMode) {
     // 智能演示模式：根据用户输入生成个性化规划
