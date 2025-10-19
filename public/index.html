@@ -572,6 +572,93 @@
             showNotification('表单已清空', 'success');
         }
 
+        // AI语音解析函数
+        async function parseVoiceWithAI(transcript) {
+            try {
+                console.log('🤖 开始AI语音解析...');
+                showNotification('AI正在解析语音内容...', 'info');
+                
+                const response = await fetch('/api/ai/parse-voice', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        voiceText: transcript
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    console.log('✅ AI解析成功:', result.data);
+                    
+                    // 自动填充表单
+                    fillFormWithData(result.data);
+                    
+                    showNotification(`AI解析完成！已自动填写：${Object.keys(result.data).join('、')}`, 'success');
+                } else {
+                    console.error('❌ AI解析失败:', result.error);
+                    showNotification('AI解析失败，请重试', 'error');
+                }
+            } catch (error) {
+                console.error('❌ AI解析请求失败:', error);
+                showNotification('解析服务暂时不可用，请手动填写', 'error');
+            }
+        }
+
+        // 使用解析数据填充表单
+        function fillFormWithData(data) {
+            console.log('📝 开始填充表单:', data);
+            
+            let filledFields = [];
+            
+            // 填充目的地
+            if (data.destination) {
+                document.getElementById('destination').value = data.destination;
+                filledFields.push('目的地');
+                console.log('✅ 填充目的地:', data.destination);
+            }
+            
+            // 填充出发日期
+            if (data.startDate) {
+                document.getElementById('startDate').value = data.startDate;
+                filledFields.push('出发日期');
+                console.log('✅ 填充出发日期:', data.startDate);
+            }
+            
+            // 填充返回日期
+            if (data.endDate) {
+                document.getElementById('endDate').value = data.endDate;
+                filledFields.push('返回日期');
+                console.log('✅ 填充返回日期:', data.endDate);
+            }
+            
+            // 填充预算
+            if (data.budget) {
+                document.getElementById('budget').value = data.budget;
+                filledFields.push('预算');
+                console.log('✅ 填充预算:', data.budget);
+            }
+            
+            // 填充人数
+            if (data.travelers) {
+                document.getElementById('travelers').value = data.travelers;
+                filledFields.push('人数');
+                console.log('✅ 填充人数:', data.travelers);
+            }
+            
+            // 填充偏好
+            if (data.preferences && Array.isArray(data.preferences)) {
+                document.getElementById('preferences').value = data.preferences.join(', ');
+                filledFields.push('偏好');
+                console.log('✅ 填充偏好:', data.preferences);
+            }
+            
+            console.log('📊 填充完成，已填写字段:', filledFields);
+        }
+
         // 智能语音解析函数
         function parseVoiceInput(transcript) {
             console.log('🧠 开始解析语音输入:', transcript);
@@ -796,15 +883,15 @@
                     document.getElementById('voiceResult').classList.add('hidden');
                 };
                 
-                recognition.onresult = (event) => {
+                recognition.onresult = async (event) => {
                     const transcript = event.results[0][0].transcript;
                     document.getElementById('voiceText').textContent = transcript;
                     document.getElementById('voiceResult').classList.remove('hidden');
                     
                     console.log('🎤 语音识别结果:', transcript);
                     
-                    // 智能解析语音输入
-                    parseVoiceInput(transcript);
+                    // 调用AI解析语音输入
+                    await parseVoiceWithAI(transcript);
                 };
                 
                 recognition.onend = () => {

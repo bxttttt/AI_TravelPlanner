@@ -15,6 +15,139 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// AI语音解析调用函数
+async function callAIForVoiceParsing(prompt) {
+  try {
+    console.log('🤖 调用AI进行语音解析...');
+    
+    const response = await axios.post('https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation', {
+      model: 'qwen-plus',
+      input: {
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      },
+      parameters: {
+        result_format: 'message'
+      }
+    }, {
+      headers: {
+        'Authorization': `Bearer sk-5aad8ea912dd411ebcf931d10f3ca7e8`,
+        'Content-Type': 'application/json'
+      },
+      timeout: 30000
+    });
+
+    if (response.data && response.data.output && response.data.output.text) {
+      const aiText = response.data.output.text;
+      console.log('🤖 AI原始响应:', aiText);
+      
+      // 解析AI返回的JSON
+      const parsedData = await parseAIResponse(aiText);
+      
+      if (parsedData) {
+        console.log('✅ AI语音解析成功');
+        return {
+          success: true,
+          data: parsedData
+        };
+      } else {
+        console.log('⚠️ AI返回数据解析失败');
+        return {
+          success: false,
+          error: 'AI返回数据格式错误'
+        };
+      }
+    } else {
+      console.log('⚠️ AI API响应格式错误');
+      return {
+        success: false,
+        error: 'AI API响应格式错误'
+      };
+    }
+  } catch (error) {
+    console.error('❌ AI语音解析调用失败:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+// 降级语音解析函数
+function parseVoiceInputFallback(voiceText) {
+  console.log('🔄 使用降级语音解析:', voiceText);
+  
+  // 目的地解析
+  const destinationPatterns = [
+    /去([^，\d]+?)(?:，|$|旅行|旅游|玩)/,
+    /到([^，\d]+?)(?:，|$|旅行|旅游|玩)/,
+    /([^，\d]+?)(?:旅行|旅游)(?:，|$)/,
+    /我想去([^，\d]+?)(?:，|$)/,
+    /计划去([^，\d]+?)(?:，|$)/
+  ];
+  
+  let destination = null;
+  for (const pattern of destinationPatterns) {
+    const match = voiceText.match(pattern);
+    if (match) {
+      destination = match[1].trim().replace(/\d+天|\d+日|\d+元|\d+万|\d+千|\d+人|\d+个/, '').trim();
+      if (destination.length > 0 && destination.length < 10) {
+        break;
+      }
+    }
+  }
+  
+  // 天数解析
+  const daysMatch = voiceText.match(/(\d+)(?:天|日)/);
+  let days = daysMatch ? parseInt(daysMatch[1]) : null;
+  
+  // 人数解析
+  const peopleMatch = voiceText.match(/(\d+)(?:人|个)/);
+  let travelers = peopleMatch ? parseInt(peopleMatch[1]) : 1;
+  
+  // 特殊处理：带孩子
+  if (voiceText.includes('带孩子') || voiceText.includes('带娃') || voiceText.includes('亲子')) {
+    travelers = 2;
+  }
+  
+  // 预算解析
+  const budgetMatch = voiceText.match(/(\d+)(?:元|万|千)/);
+  let budget = budgetMatch ? parseInt(budgetMatch[1]) : 5000;
+  if (voiceText.includes('万')) {
+    budget = budget * 10000;
+  } else if (voiceText.includes('千')) {
+    budget = budget * 1000;
+  }
+  
+  // 偏好解析
+  const preferences = [];
+  if (voiceText.includes('美食') || voiceText.includes('吃')) preferences.push('美食');
+  if (voiceText.includes('购物') || voiceText.includes('买')) preferences.push('购物');
+  if (voiceText.includes('文化') || voiceText.includes('历史')) preferences.push('文化');
+  if (voiceText.includes('自然') || voiceText.includes('风景')) preferences.push('自然');
+  if (voiceText.includes('动漫') || voiceText.includes('动画')) preferences.push('动漫');
+  if (voiceText.includes('娱乐') || voiceText.includes('游戏')) preferences.push('娱乐');
+  if (voiceText.includes('亲子') || voiceText.includes('孩子')) preferences.push('亲子');
+  
+  // 计算日期
+  const today = new Date();
+  const startDate = today.toISOString().split('T')[0];
+  const endDate = days ? new Date(today.getTime() + days * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : startDate;
+  
+  return {
+    destination: destination || '未知',
+    travelers: travelers,
+    startDate: startDate,
+    endDate: endDate,
+    budget: budget,
+    preferences: preferences.length > 0 ? preferences : ['文化']
+  };
+}
+
 // 简化的AI调用函数
 async function callAIForTripPlanning(destination, startDate, endDate, budget, travelers, preferences) {
   console.log('🤖 开始直接AI调用...');
@@ -286,6 +419,63 @@ app.delete('/api/trips/:id', auth, (req, res) => {
     message: '旅行规划删除成功',
     trip: deletedTrip
   });
+});
+
+// AI语音解析接口
+app.post('/api/ai/parse-voice', auth, async (req, res) => {
+  const { voiceText } = req.body;
+  
+  console.log('🎤 AI语音解析请求:', voiceText);
+  
+  try {
+    // 构建AI解析提示词
+    const prompt = `请从以下语音输入中提取旅行信息，并返回JSON格式的结构化数据：
+
+语音输入："${voiceText}"
+
+请提取以下信息：
+1. destination: 目的地（国家或城市名称）
+2. travelers: 同行人数（数字）
+3. startDate: 出发日期（YYYY-MM-DD格式，如果未指定则使用今天）
+4. endDate: 返回日期（YYYY-MM-DD格式，如果未指定则根据天数计算）
+5. budget: 预算（数字，单位：元）
+6. preferences: 旅行偏好（数组，如["美食", "购物", "文化"]）
+
+注意：
+- 如果语音中提到天数但没有具体日期，请从今天开始计算
+- 预算请统一转换为元为单位
+- 偏好请从以下选项中选择：美食、购物、文化、自然、动漫、娱乐、亲子
+- 如果信息不明确，请使用合理的默认值
+
+请只返回JSON格式的数据，不要包含其他文字。`;
+
+    const aiResponse = await callAIForVoiceParsing(prompt);
+    
+    if (aiResponse.success) {
+      console.log('✅ AI语音解析成功:', aiResponse.data);
+      res.json({
+        success: true,
+        data: aiResponse.data,
+        message: '语音解析成功'
+      });
+    } else {
+      console.log('⚠️ AI语音解析失败，使用降级模式');
+      // 降级到本地解析
+      const fallbackData = parseVoiceInputFallback(voiceText);
+      res.json({
+        success: true,
+        data: fallbackData,
+        message: '使用本地解析模式'
+      });
+    }
+  } catch (error) {
+    console.error('❌ AI语音解析错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '语音解析失败，请重试',
+      message: '解析服务暂时不可用'
+    });
+  }
 });
 
 // AI旅行规划接口
