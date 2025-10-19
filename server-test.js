@@ -15,6 +15,34 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// AI响应解析函数
+async function parseAIResponse(aiText) {
+  try {
+    console.log('🔄 开始解析AI响应...');
+    
+    // 清理响应中的markdown代码块标记
+    let cleanedResponse = aiText;
+    if (cleanedResponse.includes('```json')) {
+      cleanedResponse = cleanedResponse.replace(/```json\s*/, '').replace(/```\s*$/, '');
+    }
+    if (cleanedResponse.includes('```')) {
+      cleanedResponse = cleanedResponse.replace(/```\s*/, '').replace(/```\s*$/, '');
+    }
+    
+    console.log('清理后的响应:', cleanedResponse);
+    
+    // 尝试解析JSON
+    const parsedData = JSON.parse(cleanedResponse);
+    console.log('✅ JSON解析成功:', parsedData);
+    return parsedData;
+    
+  } catch (error) {
+    console.error('❌ JSON解析失败:', error.message);
+    console.error('原始响应:', aiText);
+    return null;
+  }
+}
+
 // AI语音解析调用函数
 async function callAIForVoiceParsing(prompt) {
   try {
@@ -41,8 +69,8 @@ async function callAIForVoiceParsing(prompt) {
       timeout: 30000
     });
 
-    if (response.data && response.data.output && response.data.output.text) {
-      const aiText = response.data.output.text;
+    if (response.data && response.data.output && response.data.output.choices && response.data.output.choices[0]) {
+      const aiText = response.data.output.choices[0].message.content;
       console.log('🤖 AI原始响应:', aiText);
       
       // 解析AI返回的JSON
