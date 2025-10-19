@@ -3,10 +3,16 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const Bailian = require('@alicloud/bailian20231229');
 
+// 导入新的服务
+const OrchestratorService = require('./services/OrchestratorService');
+
 // 加载环境变量
 dotenv.config();
 
 const app = express();
+
+// 初始化工具流编排服务
+const orchestrator = new OrchestratorService();
 
 // 推荐内容生成函数
 function getRestaurantRecommendations(destination) {
@@ -313,7 +319,128 @@ app.delete('/api/trips/:id/expenses/:expenseId', auth, (req, res) => {
   res.json({ message: '费用记录删除成功', trip });
 });
 
-// AI路由
+// RAG和工具流AI生成接口
+app.post('/api/ai/generate-trip-rag', auth, async (req, res) => {
+  const { destination, startDate, endDate, budget, travelers, preferences } = req.body;
+  
+  console.log('🚀 使用RAG和工具流生成旅行规划...');
+  console.log('🔑 使用API Key:', process.env.BAILIAN_API_KEY?.substring(0, 10) + '...');
+  
+  try {
+    // 准备用户输入
+    const userInput = {
+      destination,
+      startDate,
+      endDate,
+      budget: parseInt(budget),
+      travelers: parseInt(travelers),
+      preferences: preferences || {},
+      days: Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1
+    };
+    
+    console.log('📋 用户输入:', userInput);
+    
+    // 执行工具流
+    const result = await orchestrator.executeToolFlow(userInput);
+    
+    if (result.success) {
+      console.log('✅ RAG和工具流执行成功');
+      res.json({
+        message: 'AI旅行计划生成成功',
+        data: result.data,
+        apiStatus: result.apiStatus,
+        apiMessage: result.apiMessage
+      });
+    } else {
+      console.log('⚠️ 工具流执行失败，使用降级模式');
+      // 降级到原有的AI生成逻辑
+      const fallbackResult = await generateFallbackTrip(userInput);
+      res.json({
+        message: 'AI旅行计划生成成功（降级模式）',
+        data: fallbackResult,
+        apiStatus: 'fallback',
+        apiMessage: '⚠️ 使用降级模式生成旅行规划'
+      });
+    }
+    
+  } catch (error) {
+    console.error('❌ 工具流执行错误:', error);
+    
+    // 最终降级
+    try {
+      const fallbackResult = await generateFallbackTrip({
+        destination,
+        startDate,
+        endDate,
+        budget: parseInt(budget),
+        travelers: parseInt(travelers),
+        preferences: preferences || {}
+      });
+      
+      res.json({
+        message: 'AI旅行计划生成成功（降级模式）',
+        data: fallbackResult,
+        apiStatus: 'fallback',
+        apiMessage: '⚠️ 系统降级，使用基础AI生成'
+      });
+    } catch (fallbackError) {
+      console.error('❌ 降级模式也失败:', fallbackError);
+      res.status(500).json({
+        message: 'AI旅行计划生成失败',
+        error: fallbackError.message,
+        apiStatus: 'error',
+        apiMessage: '❌ 系统错误，请稍后重试'
+      });
+    }
+  }
+});
+
+// 降级模式生成函数
+async function generateFallbackTrip(userInput) {
+  const { destination, startDate, endDate, budget, travelers, preferences } = userInput;
+  
+  console.log('🔄 使用降级模式生成旅行规划...');
+  
+  const days = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1;
+  const dailyBudget = Math.round(budget / days);
+  
+  // 生成多日行程
+  const itinerary = [];
+  for (let i = 0; i < days; i++) {
+    const currentDate = new Date(startDate);
+    currentDate.setDate(currentDate.getDate() + i);
+    const dateStr = currentDate.toISOString().split('T')[0];
+    
+    const dayActivities = generateDayActivities(destination, i, days, dailyBudget, preferences);
+    
+    itinerary.push({
+      date: dateStr,
+      dayTitle: `第${i + 1}天：${getDayTitle(i, days, destination)}`,
+      dailyBudget: dailyBudget,
+      activities: dayActivities
+    });
+  }
+  
+  return {
+    summary: `AI为您规划了${destination}的${days}天${days-1}夜旅行，总预算${budget}元，每日预算约${dailyBudget}元`,
+    itinerary: itinerary,
+    recommendations: {
+      restaurants: getRestaurantRecommendations(destination),
+      attractions: getAttractionRecommendations(destination),
+      tips: getTravelTips(destination, preferences)
+    },
+    budgetSummary: {
+      total: budget,
+      transportation: Math.floor(budget * 0.3),
+      accommodation: Math.floor(budget * 0.25),
+      dining: Math.floor(budget * 0.25),
+      attractions: Math.floor(budget * 0.15),
+      shopping: Math.floor(budget * 0.05)
+    }
+  };
+}
+
+// AI路由（保持原有接口兼容性）
 app.post('/api/ai/generate-trip', auth, async (req, res) => {
   const { destination, startDate, endDate, budget, travelers, preferences } = req.body;
   

@@ -634,7 +634,8 @@
                     showNotification('使用演示模式生成旅行规划（配置API Key后可获得更智能的AI规划）', 'info');
                 }
                 
-                const response = await fetch('/api/ai/generate-trip', {
+                // 优先使用RAG和工具流接口
+                const response = await fetch('/api/ai/generate-trip-rag', {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
