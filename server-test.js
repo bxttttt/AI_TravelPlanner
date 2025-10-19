@@ -561,6 +561,146 @@ app.post('/api/ai/generate-trip-rag', auth, async (req, res) => {
   }
 });
 
+// 获取景点图片接口
+app.get('/api/images/:location', auth, async (req, res) => {
+  const { location } = req.params;
+  console.log('🖼️ 获取景点图片请求:', location);
+  
+  try {
+    const images = await getLocationImages(location);
+    res.json({ success: true, images: images });
+  } catch (error) {
+    console.error('❌ 获取景点图片失败:', error);
+    res.status(500).json({ success: false, error: '获取图片失败，请重试' });
+  }
+});
+
+// 获取地点相关图片
+async function getLocationImages(location) {
+  try {
+    console.log('🖼️ 开始获取地点图片:', location);
+    
+    // 使用Unsplash API获取高质量图片
+    const images = await getUnsplashImages(location);
+    
+    if (images.length > 0) {
+      console.log(`✅ 成功获取${images.length}张图片`);
+      return images;
+    }
+    
+    // 如果Unsplash失败，使用备用图片源
+    console.log('⚠️ Unsplash API失败，使用备用图片源');
+    return getFallbackImages(location);
+    
+  } catch (error) {
+    console.error('❌ 获取图片失败:', error);
+    return getFallbackImages(location);
+  }
+}
+
+// 使用Unsplash API获取图片
+async function getUnsplashImages(location) {
+  try {
+    // 构建搜索关键词
+    const searchTerms = [
+      `${location} travel`,
+      `${location} tourism`,
+      `${location} attractions`,
+      `${location} landmarks`,
+      `${location} city`
+    ];
+    
+    const images = [];
+    
+    for (const term of searchTerms) {
+      try {
+        const response = await axios.get(`https://api.unsplash.com/search/photos`, {
+          params: {
+            query: term,
+            per_page: 2,
+            orientation: 'landscape'
+          },
+          headers: {
+            'Authorization': 'Client-ID YOUR_UNSPLASH_ACCESS_KEY' // 需要申请Unsplash API Key
+          },
+          timeout: 5000
+        });
+        
+        if (response.data && response.data.results) {
+          response.data.results.forEach(photo => {
+            images.push({
+              url: photo.urls.regular,
+              thumb: photo.urls.thumb,
+              description: photo.description || photo.alt_description || `${location} 景点图片`,
+              photographer: photo.user.name,
+              photographer_url: photo.user.links.html,
+              source: 'unsplash'
+            });
+          });
+        }
+      } catch (apiError) {
+        console.log(`⚠️ Unsplash API调用失败: ${term}`, apiError.message);
+      }
+    }
+    
+    // 去重并限制数量
+    const uniqueImages = images.filter((img, index, self) => 
+      index === self.findIndex(t => t.url === img.url)
+    ).slice(0, 8);
+    
+    return uniqueImages;
+    
+  } catch (error) {
+    console.error('❌ Unsplash API调用失败:', error);
+    return [];
+  }
+}
+
+// 备用图片源
+function getFallbackImages(location) {
+  console.log('🔄 使用备用图片源');
+  
+  // 根据地点返回预设的高质量图片
+  const fallbackImages = {
+    '北京': [
+      { url: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=400', description: '北京天安门' },
+      { url: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=400', description: '北京故宫' },
+      { url: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=400', description: '北京长城' },
+      { url: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=400', description: '北京颐和园' },
+      { url: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=400', description: '北京天坛' }
+    ],
+    '上海': [
+      { url: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=400', description: '上海外滩' },
+      { url: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=400', description: '上海东方明珠' },
+      { url: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=400', description: '上海豫园' },
+      { url: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=400', description: '上海南京路' },
+      { url: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=400', description: '上海迪士尼' }
+    ],
+    '韩国': [
+      { url: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=400', description: '首尔明洞' },
+      { url: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=400', description: '首尔景福宫' },
+      { url: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=400', description: '首尔弘大' },
+      { url: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=400', description: '首尔东大门' },
+      { url: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=400', description: '首尔汉江' }
+    ],
+    '日本': [
+      { url: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=400', description: '东京浅草寺' },
+      { url: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=400', description: '东京银座' },
+      { url: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=400', description: '东京秋叶原' },
+      { url: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=400', description: '东京新宿' },
+      { url: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=400', description: '东京涩谷' }
+    ]
+  };
+  
+  return fallbackImages[location] || [
+    { url: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=400', description: `${location} 景点图片` },
+    { url: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=400', description: `${location} 旅游景点` },
+    { url: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=400', description: `${location} 风景` },
+    { url: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=400', description: `${location} 地标` },
+    { url: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=400', description: `${location} 文化` }
+  ];
+}
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`🚀 AI旅行规划师服务器运行在端口 ${PORT}`);
