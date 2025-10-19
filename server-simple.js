@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const OpenAI = require('openai');
 
 // 加载环境变量
 dotenv.config();
@@ -195,7 +196,7 @@ app.delete('/api/trips/:id/expenses/:expenseId', auth, (req, res) => {
 });
 
 // AI路由
-app.post('/api/ai/generate-trip', auth, (req, res) => {
+app.post('/api/ai/generate-trip', auth, async (req, res) => {
   const { destination, startDate, endDate, budget, travelers, preferences } = req.body;
   
   // 检查是否有API Key配置
@@ -204,55 +205,163 @@ app.post('/api/ai/generate-trip', auth, (req, res) => {
   // 在演示模式下，如果没有API Key，使用演示数据
   const isDemoMode = !userApiKey;
   
-  // 模拟AI响应（在实际应用中，这里会调用OpenAI API）
-  const mockResponse = {
-    message: isDemoMode ? '演示模式：旅行计划生成成功（配置API Key后可获得更智能的AI规划）' : 'AI旅行计划生成成功',
-    data: {
-      destination,
-      summary: `为您规划了${destination}的${travelers}人旅行，预算${budget}元`,
-      itinerary: [
+  if (isDemoMode) {
+    // 演示模式：返回基础模板
+    const mockResponse = {
+      message: '演示模式：旅行计划生成成功（配置API Key后可获得更智能的AI规划）',
+      data: {
+        destination,
+        summary: `为您规划了${destination}的${travelers}人旅行，预算${budget}元`,
+        itinerary: [
+          {
+            date: startDate,
+            activities: [
+              {
+                time: '09:00',
+                title: '抵达目的地',
+                description: '到达机场，办理入住手续',
+                location: '机场',
+                cost: 0,
+                category: '交通'
+              },
+              {
+                time: '12:00',
+                title: '午餐',
+                description: '品尝当地特色美食',
+                location: '市中心餐厅',
+                cost: 200,
+                category: '餐饮'
+              },
+              {
+                time: '14:00',
+                title: '城市观光',
+                description: '游览当地著名景点',
+                location: '市中心',
+                cost: 150,
+                category: '景点'
+              },
+              {
+                time: '18:00',
+                title: '晚餐',
+                description: '享受当地特色晚餐',
+                location: '特色餐厅',
+                cost: 300,
+                category: '餐饮'
+              }
+            ]
+          }
+        ]
+      }
+    };
+    return res.json(mockResponse);
+  }
+  
+  try {
+    // 使用真实的OpenAI API
+    const openai = new OpenAI({
+      apiKey: userApiKey
+    });
+    
+    // 构建详细的提示词
+    const prompt = `作为专业的旅行规划师，请为以下需求制定详细的旅行计划：
+
+目的地：${destination}
+出发日期：${startDate}
+返回日期：${endDate}
+预算：${budget}元
+人数：${travelers}人
+特殊偏好：${preferences || '无特殊要求'}
+
+请生成一个详细的旅行计划，包括：
+1. 每日行程安排（时间、地点、活动、费用）
+2. 推荐的餐厅和美食
+3. 必游景点和活动
+4. 交通建议
+5. 住宿推荐
+6. 预算分配建议
+7. 实用贴士
+
+请以JSON格式返回，包含以下结构：
+{
+  "summary": "旅行概述",
+  "itinerary": [
+    {
+      "date": "日期",
+      "activities": [
         {
-          date: startDate,
-          activities: [
-            {
-              time: '09:00',
-              title: '抵达目的地',
-              description: '到达机场，办理入住手续',
-              location: '机场',
-              cost: 0,
-              category: '交通'
-            },
-            {
-              time: '12:00',
-              title: '午餐',
-              description: '品尝当地特色美食',
-              location: '市中心餐厅',
-              cost: 200,
-              category: '餐饮'
-            },
-            {
-              time: '14:00',
-              title: '城市观光',
-              description: '游览当地著名景点',
-              location: '市中心',
-              cost: 150,
-              category: '景点'
-            },
-            {
-              time: '18:00',
-              title: '晚餐',
-              description: '享受当地特色晚餐',
-              location: '特色餐厅',
-              cost: 300,
-              category: '餐饮'
-            }
-          ]
+          "time": "时间",
+          "title": "活动标题",
+          "description": "详细描述",
+          "location": "地点",
+          "cost": 费用,
+          "category": "类别"
         }
       ]
     }
-  };
-  
-  res.json(mockResponse);
+  ],
+  "recommendations": {
+    "restaurants": ["餐厅推荐"],
+    "attractions": ["景点推荐"],
+    "tips": ["实用贴士"]
+  }
+}`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [
+        {
+          role: "system",
+          content: "你是一个专业的旅行规划师，擅长制定详细、实用的旅行计划。请根据用户需求提供个性化的旅行建议。"
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      max_tokens: 2000,
+      temperature: 0.7
+    });
+    
+    const aiResponse = completion.choices[0].message.content;
+    
+    // 尝试解析AI返回的JSON
+    let parsedResponse;
+    try {
+      parsedResponse = JSON.parse(aiResponse);
+    } catch (parseError) {
+      // 如果解析失败，使用原始响应
+      parsedResponse = {
+        summary: `AI为您规划了${destination}的${travelers}人旅行`,
+        itinerary: [
+          {
+            date: startDate,
+            activities: [
+              {
+                time: '09:00',
+                title: 'AI规划的活动',
+                description: aiResponse.substring(0, 200) + '...',
+                location: destination,
+                cost: 0,
+                category: 'AI推荐'
+              }
+            ]
+          }
+        ]
+      };
+    }
+    
+    res.json({
+      message: 'AI旅行计划生成成功',
+      data: parsedResponse
+    });
+    
+  } catch (error) {
+    console.error('OpenAI API错误:', error);
+    res.status(500).json({
+      message: 'AI服务暂时不可用，请稍后重试',
+      error: error.message
+    });
+  }
 });
 
 app.post('/api/ai/speech-to-text', auth, (req, res) => {
