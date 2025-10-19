@@ -202,8 +202,12 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
   // 检查是否有API Key配置
   const userApiKey = req.headers['x-api-key'] || req.body.apiKey;
   
+  // 使用默认的API Key（您的API Key）
+  const defaultApiKey = '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';
+  const finalApiKey = userApiKey || defaultApiKey;
+  
   // 在演示模式下，如果没有API Key，使用演示数据
-  const isDemoMode = !userApiKey;
+  const isDemoMode = !userApiKey && !defaultApiKey;
   
   if (isDemoMode) {
     // 演示模式：返回基础模板
@@ -259,7 +263,7 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
   try {
     // 使用真实的OpenAI API
     const openai = new OpenAI({
-      apiKey: userApiKey
+      apiKey: finalApiKey
     });
     
     // 构建详细的提示词
