@@ -825,7 +825,33 @@
                 const dayContent = document.getElementById('dayContent');
                 
                 function updateDayDisplay() {
-                    dayContent.innerHTML = generateDayContent(currentDay);
+                    if (currentDay >= itinerary.length) return;
+                    const day = itinerary[currentDay];
+                    dayContent.innerHTML = `
+                        <div class="border-l-4 border-blue-500 pl-4">
+                            <h4 class="font-semibold text-gray-900">${new Date(day.date).toLocaleDateString('zh-CN')}</h4>
+                            <div class="mt-2 space-y-2">
+                                ${day.activities ? day.activities.map(activity => `
+                                    <div class="flex items-start space-x-3 bg-gray-50 p-3 rounded-lg">
+                                        <span class="text-gray-400">🕐</span>
+                                        <div class="flex-1">
+                                            <div class="flex justify-between items-start">
+                                                <div>
+                                                    <p class="font-medium text-gray-900">${activity.title}</p>
+                                                    <p class="text-sm text-gray-600">${activity.description}</p>
+                                                    ${activity.location ? `<p class="text-xs text-blue-600">📍 ${activity.location}</p>` : ''}
+                                                </div>
+                                                <div class="text-right">
+                                                    ${activity.cost ? `<p class="text-sm font-bold text-green-600">¥${activity.cost}</p>` : ''}
+                                                    ${activity.category ? `<p class="text-xs text-gray-500">${activity.category}</p>` : ''}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('') : ''}
+                            </div>
+                        </div>
+                    `;
                     dayInfo.textContent = `第 ${currentDay + 1} 天 / 共 ${totalDays} 天`;
                     prevBtn.disabled = currentDay === 0;
                     nextBtn.disabled = currentDay === totalDays - 1;
