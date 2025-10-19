@@ -298,15 +298,17 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
   // 检查是否有API Key配置
   const userApiKey = req.headers['x-api-key'] || req.body.apiKey;
   
-  // 使用您的API Key
+  // 使用您的阿里云百炼API Key
   const defaultApiKey = 'sk-5aad8ea912dd411ebcf931d10f3ca7e8';
   const finalApiKey = userApiKey || defaultApiKey;
+  
+  console.log('🔑 使用API Key:', finalApiKey.substring(0, 10) + '...');
   
   // 在演示模式下，如果没有API Key，使用演示数据
   const isDemoMode = !userApiKey && !defaultApiKey;
   
-  // 由于网络问题，使用智能降级模式
-  const useDemoMode = true; // 使用智能降级模式
+  // 使用真实API调用
+  const useDemoMode = false; // 使用真实API
   
   if (isDemoMode || useDemoMode) {
     // 智能演示模式：根据用户输入生成个性化规划
@@ -462,7 +464,10 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
     // 使用HTTP请求调用API
     const axios = require('axios');
     
-    console.log('API Key:', finalApiKey.substring(0, 10) + '...');
+    console.log('🌐 正在调用阿里云百炼API...');
+    console.log('📡 API端点: https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions');
+    console.log('🤖 模型: qwen-plus');
+    console.log('🔑 API Key: ' + finalApiKey.substring(0, 10) + '...');
     
     // 尝试调用阿里云百炼API
     const response = await axios.post('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
