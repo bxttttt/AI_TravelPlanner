@@ -31,6 +31,13 @@ function getRestaurantRecommendations(destination) {
       '外滩18号 - 高端餐饮体验',
       '城隍庙小吃 - 传统上海味道'
     ];
+  } else if (destination.includes('韩国') || destination.includes('首尔')) {
+    return [
+      '明洞烤肉店 - 正宗韩式烤肉体验',
+      '弘大网红咖啡厅 - 打卡潮流文化',
+      '东大门小吃街 - 地道韩式街头美食',
+      '江南区米其林餐厅 - 高端韩式料理'
+    ];
   } else {
     return [
       '当地特色餐厅 - 品尝地道风味',
@@ -63,6 +70,13 @@ function getAttractionRecommendations(destination) {
       '豫园 - 江南古典园林',
       '新天地 - 时尚文化区'
     ];
+  } else if (destination.includes('韩国') || destination.includes('首尔')) {
+    return [
+      '景福宫 - 朝鲜王朝宫殿建筑',
+      '明洞购物街 - 韩国潮流文化中心',
+      '弘大艺术区 - 青年文化聚集地',
+      '汉江公园 - 首尔城市绿肺'
+    ];
   } else {
     return [
       '历史古迹 - 了解当地文化',
@@ -87,6 +101,8 @@ function getTravelTips(destination, preferences) {
     baseTips.push('下载北京地铁APP', '准备身份证件', '了解北京交通限行政策');
   } else if (destination.includes('上海')) {
     baseTips.push('下载上海地铁APP', '准备身份证件', '了解上海交通规则');
+  } else if (destination.includes('韩国') || destination.includes('首尔')) {
+    baseTips.push('学习基本韩语礼貌用语', '准备T-money交通卡', '了解韩国文化礼仪', '关注K-pop演出信息');
   }
   
   if (preferences.includes('美食')) {
@@ -348,6 +364,12 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
         { time: '14:00', title: '外滩观光', description: '漫步外滩，欣赏黄浦江两岸美景', location: '外滩', cost: 0, category: '景点' },
         { time: '16:00', title: '南京路购物', description: '逛中华商业第一街，体验上海繁华', location: '南京路步行街', cost: Math.round(perPersonBudget * 0.2), category: '购物' }
       ];
+    } else if (destinationLower.includes('韩国') || destinationLower.includes('首尔')) {
+      destinationActivities = [
+        { time: '12:00', title: '韩式烤肉', description: '品尝正宗韩式烤肉，体验韩国饮食文化', location: '明洞烤肉店', cost: Math.round(perPersonBudget * 0.3), category: '餐饮' },
+        { time: '14:00', title: '景福宫参观', description: '游览朝鲜王朝宫殿，感受韩国历史文化', location: '景福宫', cost: Math.round(perPersonBudget * 0.15), category: '文化' },
+        { time: '16:00', title: '弘大购物', description: '探索韩国青年文化聚集地，购买潮流商品', location: '弘大艺术区', cost: Math.round(perPersonBudget * 0.2), category: '购物' }
+      ];
     } else {
       // 通用活动
       destinationActivities = [
@@ -423,49 +445,50 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
   try {
     console.log('正在调用真实API...');
     
-    // 构建详细的提示词
-    const prompt = `作为专业的旅行规划师，请为以下需求制定详细的旅行计划：
+    // 构建优化的提示词
+    const prompt = `作为专业的旅行规划师，请为以下需求制定详细且合理的旅行计划：
 
 目的地：${destination}
 出发日期：${startDate}
 返回日期：${endDate}
-预算：${budget}元
+总预算：${budget}元（人民币）
 人数：${travelers}人
 特殊偏好：${preferences || '无特殊要求'}
 
-请生成一个详细的旅行计划，包括：
-1. 每日行程安排（时间、地点、活动、费用）
-2. 推荐的餐厅和美食
-3. 必游景点和活动
-4. 交通建议
-5. 住宿推荐
-6. 预算分配建议
-7. 实用贴士
+重要要求：
+1. 每日活动控制在3-5个，避免过于紧凑
+2. 合理分配预算：交通30%、住宿25%、餐饮25%、景点15%、购物5%
+3. 考虑实际交通时间和休息时间
+4. 根据季节和天气安排室内外活动
+5. 提供具体的费用估算，确保在预算范围内
+6. 活动时间安排要合理，避免过于匆忙
 
 请以JSON格式返回，包含以下结构：
 {
-  "summary": "旅行概述",
+  "summary": "旅行概述（包含预算分配说明）",
   "itinerary": [
     {
-      "date": "日期",
+      "date": "YYYY-MM-DD",
       "activities": [
         {
-          "time": "时间",
-          "title": "活动标题",
-          "description": "详细描述",
-          "location": "地点",
-          "cost": 费用,
-          "category": "类别"
+          "time": "HH:MM-HH:MM",
+          "title": "具体活动名称",
+          "description": "详细的活动描述和注意事项",
+          "location": "具体地址或区域",
+          "cost": 具体费用数字,
+          "category": "交通/住宿/餐饮/景点/购物/其他"
         }
       ]
     }
   ],
   "recommendations": {
-    "restaurants": ["餐厅推荐"],
-    "attractions": ["景点推荐"],
-    "tips": ["实用贴士"]
+    "restaurants": ["具体的餐厅名称和特色"],
+    "attractions": ["具体的景点名称和亮点"],
+    "tips": ["实用的旅行贴士和注意事项"]
   }
-}`;
+}
+
+注意：请确保JSON格式正确，所有字符串用双引号，数字不加引号。`;
 
     // 使用HTTP请求调用API
     const axios = require('axios');
@@ -689,24 +712,9 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
           }
         ],
         recommendations: {
-          restaurants: [
-            '当地特色餐厅',
-            '网红打卡餐厅',
-            '传统老字号',
-            '街头小吃摊'
-          ],
-          attractions: [
-            '历史古迹',
-            '自然景观',
-            '文化博物馆',
-            '现代地标建筑'
-          ],
-          tips: [
-            '提前预订热门景点门票',
-            '了解当地交通方式',
-            '准备常用药品',
-            '学习基本当地语言'
-          ]
+          restaurants: getRestaurantRecommendations(destination),
+          attractions: getAttractionRecommendations(destination),
+          tips: getTravelTips(destination, preferences)
         }
       }
     };

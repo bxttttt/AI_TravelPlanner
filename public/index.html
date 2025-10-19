@@ -772,7 +772,31 @@
                         ` : ''}
                     </div>
                     <div id="dayContent" class="space-y-4">
-                        ${generateDayContent(0)}
+                        ${itinerary.length > 0 ? `
+                            <div class="border-l-4 border-blue-500 pl-4">
+                                <h4 class="font-semibold text-gray-900">${new Date(itinerary[0].date).toLocaleDateString('zh-CN')}</h4>
+                                <div class="mt-2 space-y-2">
+                                    ${itinerary[0].activities ? itinerary[0].activities.map(activity => `
+                                        <div class="flex items-start space-x-3 bg-gray-50 p-3 rounded-lg">
+                                            <span class="text-gray-400">🕐</span>
+                                            <div class="flex-1">
+                                                <div class="flex justify-between items-start">
+                                                    <div>
+                                                        <p class="font-medium text-gray-900">${activity.title}</p>
+                                                        <p class="text-sm text-gray-600">${activity.description}</p>
+                                                        ${activity.location ? `<p class="text-xs text-blue-600">📍 ${activity.location}</p>` : ''}
+                                                    </div>
+                                                    <div class="text-right">
+                                                        ${activity.cost ? `<p class="text-sm font-bold text-green-600">¥${activity.cost}</p>` : ''}
+                                                        ${activity.category ? `<p class="text-xs text-gray-500">${activity.category}</p>` : ''}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `).join('') : ''}
+                                </div>
+                            </div>
+                        ` : '<p class="text-gray-500">暂无行程安排</p>'}
                     </div>
                 </div>
                 
@@ -973,7 +997,8 @@
                 
                 if (response.ok) {
                     const data = await response.json();
-                    displayUserTrips(data.trips || []);
+                    console.log('📋 前端接收到的旅行规划数据:', data);
+                    displayUserTrips(data || []);
                 } else {
                     console.error('加载旅行规划失败');
                     displayUserTrips([]);
