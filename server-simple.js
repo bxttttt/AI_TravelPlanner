@@ -523,7 +523,9 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
     
     res.json({
       message: 'AI旅行计划生成成功',
-      data: parsedResponse
+      data: parsedResponse,
+      apiStatus: 'success',
+      apiMessage: '✅ 成功调用阿里云百炼API，使用通义千问模型生成智能规划'
     });
     
   } catch (error) {
@@ -541,6 +543,8 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
     // 如果API调用失败，返回增强的演示数据
     const fallbackResponse = {
       message: 'AI服务暂时不可用，为您提供智能演示规划',
+      apiStatus: 'timeout',
+      apiMessage: '⏰ API调用超时，已使用智能降级模式生成规划',
       data: {
         summary: `为您规划了${destination}的${travelers}人旅行，预算${budget}元`,
         itinerary: [
