@@ -465,7 +465,7 @@ app.post('/api/ai/generate-trip', auth, async (req, res) => {
     console.log('API Key:', finalApiKey.substring(0, 10) + '...');
     
     // 尝试调用阿里云百炼API
-    const response = await axios.post('https://bailian.cn-beijing.aliyuncs.com/api/v1/chat/completions', {
+    const response = await axios.post('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
       model: "qwen-plus",
       messages: [
         {
