@@ -378,7 +378,15 @@
             const notification = document.getElementById('notification');
             const notificationText = document.getElementById('notificationText');
             notificationText.textContent = message;
-            notification.className = `fixed top-4 right-4 text-white px-6 py-3 rounded-lg shadow-lg ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+            
+            let bgColor = 'bg-green-500';
+            if (type === 'error') {
+                bgColor = 'bg-red-500';
+            } else if (type === 'info') {
+                bgColor = 'bg-blue-500';
+            }
+            
+            notification.className = `fixed top-4 right-4 text-white px-6 py-3 rounded-lg shadow-lg ${bgColor}`;
             notification.classList.remove('hidden');
             setTimeout(() => {
                 notification.classList.add('hidden');
@@ -568,10 +576,9 @@
                 // 获取用户配置的API Key
                 const userApiKey = currentUser?.preferences?.openaiApiKey || '';
                 
+                // 在演示模式下，如果没有配置API Key，使用演示模式
                 if (!userApiKey) {
-                    showNotification('请先在设置中配置OpenAI API Key', 'error');
-                    showPage('settingsPage');
-                    return;
+                    showNotification('使用演示模式生成旅行规划（配置API Key后可获得更智能的AI规划）', 'info');
                 }
                 
                 const response = await fetch('/api/ai/generate-trip', {

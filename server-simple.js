@@ -201,16 +201,12 @@ app.post('/api/ai/generate-trip', auth, (req, res) => {
   // 检查是否有API Key配置
   const userApiKey = req.headers['x-api-key'] || req.body.apiKey;
   
-  if (!userApiKey) {
-    return res.status(400).json({ 
-      message: '请先在设置中配置OpenAI API Key',
-      needApiKey: true
-    });
-  }
+  // 在演示模式下，如果没有API Key，使用演示数据
+  const isDemoMode = !userApiKey;
   
   // 模拟AI响应（在实际应用中，这里会调用OpenAI API）
   const mockResponse = {
-    message: 'AI旅行计划生成成功',
+    message: isDemoMode ? '演示模式：旅行计划生成成功（配置API Key后可获得更智能的AI规划）' : 'AI旅行计划生成成功',
     data: {
       destination,
       summary: `为您规划了${destination}的${travelers}人旅行，预算${budget}元`,
