@@ -246,6 +246,57 @@
                             </div>
                         </div>
 
+                        <!-- 文字输入区域 -->
+                        <div class="border-2 border-dashed border-green-300 rounded-lg p-6">
+                            <div class="flex items-center justify-center mb-4">
+                                <span class="text-2xl mr-2">✍️</span>
+                                <h3 class="text-lg font-semibold text-gray-900">智能文字输入</h3>
+                            </div>
+                            <p class="text-sm text-gray-600 mb-4 text-center">直接输入您的旅行需求，AI会自动解析并填写表单</p>
+                            
+                            <!-- 文字输入框 -->
+                            <div class="mb-4">
+                                <textarea 
+                                    id="textInput" 
+                                    placeholder="例如：我想去日本，5天，预算1万元，喜欢美食和动漫，带孩子"
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
+                                    rows="3"
+                                ></textarea>
+                            </div>
+                            
+                            <!-- 文字解析按钮 -->
+                            <div class="flex justify-center space-x-3">
+                                <button type="button" id="parseTextBtn" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2">
+                                    <span>🤖</span>
+                                    <span>AI解析文字</span>
+                                </button>
+                                <button type="button" id="clearTextBtn" class="bg-gray-500 text-white px-4 py-3 rounded-lg hover:bg-gray-600 transition-colors">
+                                    清空
+                                </button>
+                            </div>
+                            
+                            <!-- 文字解析状态指示器 -->
+                            <div id="textParseStatus" class="mt-4 p-3 bg-gray-50 rounded-lg hidden">
+                                <div class="flex items-center justify-center">
+                                    <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600 mr-2"></div>
+                                    <span class="text-sm text-green-600">AI正在解析文字...</span>
+                                </div>
+                            </div>
+                            
+                            <!-- 文字解析结果 -->
+                            <div id="textParseResult" class="mt-4 p-4 bg-green-50 rounded-lg hidden">
+                                <p class="text-sm text-green-800">
+                                    <strong>AI解析结果：</strong> <span id="parsedText"></span>
+                                </p>
+                            </div>
+                            
+                            <div class="mt-3 text-center">
+                                <div class="text-xs text-gray-500">
+                                    <p>💡 支持自然语言输入，AI会智能识别目的地、时间、预算、人数、偏好等信息</p>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- 基本信息表单 -->
                         <div class="grid md:grid-cols-2 gap-6">
                             <div>
@@ -614,6 +665,55 @@
             }
         }
 
+        // AI文字解析函数
+        async function parseTextWithAI(text) {
+            try {
+                console.log('🤖 开始AI文字解析...');
+                
+                // 显示解析状态
+                document.getElementById('textParseStatus').classList.remove('hidden');
+                document.getElementById('textParseResult').classList.add('hidden');
+                
+                showNotification('AI正在解析文字内容...', 'info');
+                
+                const response = await fetch('/api/ai/parse-voice', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        voiceText: text
+                    })
+                });
+                
+                const result = await response.json();
+                
+                // 隐藏解析状态
+                document.getElementById('textParseStatus').classList.add('hidden');
+                
+                if (result.success && result.data) {
+                    console.log('✅ AI文字解析成功:', result.data);
+                    
+                    // 显示解析结果
+                    document.getElementById('parsedText').textContent = text;
+                    document.getElementById('textParseResult').classList.remove('hidden');
+                    
+                    // 自动填充表单
+                    fillFormWithData(result.data);
+                    
+                    showNotification(`AI解析完成！已自动填写：${Object.keys(result.data).join('、')}`, 'success');
+                } else {
+                    console.error('❌ AI文字解析失败:', result.error);
+                    showNotification('AI解析失败，请重试', 'error');
+                }
+            } catch (error) {
+                console.error('❌ AI文字解析请求失败:', error);
+                document.getElementById('textParseStatus').classList.add('hidden');
+                showNotification('解析服务暂时不可用，请手动填写', 'error');
+            }
+        }
+
         // 使用解析数据填充表单
         function fillFormWithData(data) {
             console.log('📝 开始填充表单:', data);
@@ -870,6 +970,23 @@
             } else {
                 stopVoiceRecording();
             }
+        });
+
+        // 文字解析输入
+        document.getElementById('parseTextBtn').addEventListener('click', () => {
+            const textInput = document.getElementById('textInput').value.trim();
+            if (!textInput) {
+                showNotification('请输入您的旅行需求', 'error');
+                return;
+            }
+            parseTextWithAI(textInput);
+        });
+
+        // 清空文字输入
+        document.getElementById('clearTextBtn').addEventListener('click', () => {
+            document.getElementById('textInput').value = '';
+            document.getElementById('textParseResult').classList.add('hidden');
+            document.getElementById('parsedText').textContent = '';
         });
 
         // 科大讯飞语音识别配置
