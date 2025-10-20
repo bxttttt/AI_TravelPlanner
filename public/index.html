@@ -1442,39 +1442,26 @@
             }
         }
 
-        // 加载用户的旅行规划
-        async function loadUserTrips() {
-            try {
-                const response = await fetch('/api/trips', {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('📋 前端接收到的旅行规划数据:', data);
-                    displayUserTrips(data || []);
-                } else {
-                    console.error('加载旅行规划失败');
-                    displayUserTrips([]);
-                }
-            } catch (error) {
-                console.error('加载旅行规划失败:', error);
-                displayUserTrips([]);
-            }
-        }
 
         // 显示用户的旅行规划
         function displayUserTrips(trips) {
+            console.log('🎨 开始显示旅行规划，数量:', trips ? trips.length : 0);
+            console.log('🎨 旅行规划数据:', trips);
+            
             const tripsList = document.getElementById('tripsList');
             const noTripsMessage = document.getElementById('noTripsMessage');
             
+            console.log('🎨 tripsList元素:', tripsList);
+            console.log('🎨 noTripsMessage元素:', noTripsMessage);
+            
             if (trips.length === 0) {
+                console.log('📭 没有旅行规划，显示空状态');
                 tripsList.innerHTML = '';
                 noTripsMessage.classList.remove('hidden');
                 return;
             }
+            
+            console.log('📋 有旅行规划，开始渲染...');
             
             noTripsMessage.classList.add('hidden');
             tripsList.innerHTML = trips.map(trip => `
@@ -1941,23 +1928,30 @@
         // 修改loadUserTrips函数以保存数据
         async function loadUserTrips() {
             try {
+                console.log('🔄 开始加载用户旅行规划...');
+                const token = localStorage.getItem('token');
+                console.log('🔑 当前token:', token ? '存在' : '不存在');
+                
                 const response = await fetch('/api/trips', {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        'Authorization': `Bearer ${token}`
                     }
                 });
+                
+                console.log('📡 API响应状态:', response.status);
                 
                 if (response.ok) {
                     const data = await response.json();
                     console.log('📋 前端接收到的旅行规划数据:', data);
+                    console.log('📊 旅行规划数量:', data ? data.length : 0);
                     allTrips = data || []; // 保存所有数据
                     displayUserTrips(allTrips);
                 } else {
-                    console.error('加载旅行规划失败');
+                    console.error('❌ 加载旅行规划失败，状态码:', response.status);
                     displayUserTrips([]);
                 }
             } catch (error) {
-                console.error('加载旅行规划失败:', error);
+                console.error('❌ 加载旅行规划失败:', error);
                 displayUserTrips([]);
             }
         }
