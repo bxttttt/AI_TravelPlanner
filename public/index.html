@@ -1965,7 +1965,12 @@
                 loadUserTrips(); // 加载用户的旅行规划
                 showPage('homePage');
             } else {
+                // 演示模式：即使没有token也显示旅行规划部分
                 updateNavbarForGuest();
+                // 设置一个演示token
+                localStorage.setItem('token', 'demo-token');
+                updateNavbarForLoggedInUser();
+                loadUserTrips(); // 加载用户的旅行规划
                 showPage('homePage');
             }
         });
