@@ -1,45 +1,12 @@
-version: '3.8'
-
 services:
-  # MongoDB 数据库
-  mongodb:
-    image: mongo:6.0
-    container_name: ai-travel-planner-db
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: password123
-      MONGO_INITDB_DATABASE: ai-travel-planner
-    volumes:
-      - mongodb_data:/data/db
-    networks:
-      - ai-travel-network
-
-  # AI旅行规划师应用
   app:
     build: .
     container_name: ai-travel-planner-app
     restart: unless-stopped
     ports:
-      - "5000:5000"
+      - "3001:3001"
     environment:
       - NODE_ENV=production
-      - PORT=5000
-      - MONGODB_URI=mongodb://admin:password123@mongodb:27017/ai-travel-planner?authSource=admin
-      - JWT_SECRET=your_jwt_secret_key_change_this_in_production
-      - CLIENT_URL=http://localhost:5000
-    depends_on:
-      - mongodb
-    networks:
-      - ai-travel-network
-    volumes:
-      - ./uploads:/app/uploads
-
-volumes:
-  mongodb_data:
-
-networks:
-  ai-travel-network:
-    driver: bridge
+      - PORT=3001
+    env_file:
+      - .env

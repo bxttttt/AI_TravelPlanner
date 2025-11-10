@@ -37,7 +37,7 @@ docker-compose ps
 
 echo ""
 echo "✅ AI旅行规划师启动完成！"
-echo "🌐 访问地址: http://localhost:5000"
+echo "🌐 访问地址: http://localhost:3001"
 echo ""
 echo "📋 管理命令:"
 echo "  查看日志: docker-compose logs -f"

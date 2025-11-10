@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
-import { MapPin, Calendar, DollarSign, Users, Plus, Edit, Trash2, Clock, Utensils, Car, Home, Shopping } from 'lucide-react';
+import { MapPin, Calendar, DollarSign, Users, Plus, Edit, Trash2, Clock, Utensils, Car, Home, ShoppingBag } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const TripDetail = () => {
@@ -76,7 +76,7 @@ const TripDetail = () => {
       case '餐饮':
         return <Utensils className="h-4 w-4" />;
       case '购物':
-        return <Shopping className="h-4 w-4" />;
+        return <ShoppingBag className="h-4 w-4" />;
       default:
         return <DollarSign className="h-4 w-4" />;
     }
